@@ -4,17 +4,21 @@ import datetime
 import sqlite3
 import cria_tabelas
 from flask_bootstrap import Bootstrap
-
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.static_folder = "static"
 app.secret_key = "2@2"
 bootstrap = Bootstrap(app)
 
 
+db = SQLAlchemy(app)
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("login.html")
 
 
 # Rota login de usuario
@@ -44,7 +48,7 @@ def login():
                 return redirect("/user")
 
     flash("Nome de usuário ou senha incorretos")
-    return render_template("index.html")
+    return render_template("login.html")
 
 
 # Rota para sair da sessão
@@ -59,7 +63,7 @@ def logout():
 # Rota da pagina usuario, todas acoes serao dadas aqui
 
 
-@app.route("/user")
+@app.route("/projetos")
 def user():
     if (
         "username" in session
@@ -80,18 +84,25 @@ def user():
         # Fecha a conexão com o banco de dados
         conn.close()
 
+        # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
+        df["projeto"] = (
+            "<a href='/projetos/" + df["projeto"] + "'>" + df["projeto"] + "</a>"
+        )
+
         # Renderiza a página "user.html" e passa os dados da tabela "arquivos" para a variável "tabela"
-        tabela = df.to_html(classes="table table-striped")
+        tabela = df.to_html(
+            classes="table table-striped table-user", escape=False, index=False
+        )
 
         return render_template(
-            "user.html", username=username, login_time=login_time, tabela=tabela
+            "projetos.html", username=username, login_time=login_time, tabela=tabela
         )
     else:
         # redirecionando para a página de login se o nome de usuário não estiver na sessão
         return redirect("/")
 
 
-@app.route("/projetos")
+@app.route("/user")
 def projetos():
     if (
         "username" in session
@@ -102,15 +113,22 @@ def projetos():
 
         # Renderiza o template com o nome e o caminho do último arquivo adicionado pelo usuário logado
 
-        return render_template(
-            "projetos.html", username=username, login_time=login_time
-        )
+        return render_template("user.html", username=username, login_time=login_time)
     else:
         # redirecionando para a página de login se o nome de usuário não estiver na sessão
         return redirect("/")
 
 
 # Rota para abrir os documentos de um determinado projeto
+@app.route("/projetos/<projeto>")
+def documentos(projeto):
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM arquivos WHERE projeto=?", (projeto,))
+    documentos = c.fetchall()
+    conn.close()
+
+    return render_template("documentos.html", projeto=projeto, documentos=documentos)
 
 
 if __name__ == "__main__":

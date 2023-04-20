@@ -1,86 +1,131 @@
+from flask import Flask, session, render_template, request, redirect, url_for, flash
+import pandas as pd
+import datetime
 import sqlite3
-import os
-import re
-
-# Define o diretório raiz
-diretorio = r"Z:\\Projetos"
-
-# Conexão com o banco de dados
-conn = sqlite3.connect("database.db")
-c = conn.cursor()
-
-# Cria as tabelas se não existirem
-c.execute(
-    """
-    CREATE TABLE IF NOT EXISTS log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        login_time TEXT
-    )
-"""
-)
-
-c.execute(
-    """
-    CREATE TABLE IF NOT EXISTS arquivos (
-        nome TEXT,
-        projeto TEXT,
-        caminho TEXT PRIMARY KEY,
-        status TEXT,
-        responsavel TEXT,
-        data_criado TEXT,
-        data_avaliacao TEXT,
-        data_revisao TEXT,
-        aprovador TEXT,
-        data_aprovado TEXT,
-        descricao TEXT
-    )
-"""
-)
+import cria_tabelas
+from flask_bootstrap import Bootstrap
 
 
-# Percorre recursivamente todos os diretórios a partir do diretório raiz
-for diretorio_atual, subdiretorios, arquivos in os.walk(diretorio):
-    for nome_arquivo in arquivos:
-        caminho_completo = os.path.join(diretorio_atual, nome_arquivo)
+app = Flask(__name__)
+app.static_folder = "static"
+app.secret_key = "2@2"
+bootstrap = Bootstrap(app)
 
-        # Tratamento para conexão de rede
-        try:
-            with open(caminho_completo, "r", encoding="utf-8") as f:
-                pass
-        except Exception as e:
-            print(f"Erro ao abrir arquivo: {e}")
-            continue
 
-        # Extrai o nome do projeto usando expressão regular
-        projeto = re.search(r"(?<=Projetos\\).*?(?=\\)", caminho_completo)
-        projeto_arquivo = projeto.group(0)
+@app.route("/")
+def index():
+    return render_template("login.html")
 
-        c.execute(
-            "INSERT INTO arquivos (nome, projeto, caminho) VALUES (?, ?, ?)",
-            (nome_arquivo, projeto_arquivo, caminho_completo),
+
+# Rota login de usuario
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    with open("users.csv", "r", encoding="utf-8") as file:
+        for line in file:
+            fields = line.strip().split(";")
+            if fields[0] == username and fields[1] == password:
+                now = datetime.datetime.now()
+                login_time = now.strftime("%d/%m/%Y %H:%M:%S")
+                conn = sqlite3.connect("database.db")
+                c = conn.cursor()
+                c.execute(
+                    "INSERT INTO log (username, login_time) VALUES (?, ?)",
+                    (username, login_time),
+                )
+                conn.commit()
+                conn.close()
+                session["username"] = username
+                session["login_time"] = login_time
+                return redirect("/user")
+
+    flash("Nome de usuário ou senha incorretos")
+    return render_template("login.html")
+
+
+# Rota para sair da sessão
+
+
+@app.route("/logout")
+def logout():
+    session.pop("username", None)  # Remover nome do usuário da sessão
+    return redirect(url_for("index"))
+
+
+# Rota da pagina usuario, todas acoes serao dadas aqui
+
+
+@app.route("/projetos")
+def user():
+    if (
+        "username" in session
+    ):  # verificando se o nome de usuário está armazenado na sessão
+        # recuperando o nome de usuário da sessão
+        username = session["username"]
+        login_time = session["login_time"]
+        # now = datetime.datetime.now()
+        # login_time = now.strftime("%d/%m/%Y %H:%M:%S")
+
+        conn = sqlite3.connect("database.db")
+        # Consulta na tabela "arquivos" com base no nome do usuário logado
+        df = pd.read_sql_query(
+            f"SELECT DISTINCT projeto FROM arquivos",
+            conn
+            # f"SELECT * FROM arquivos WHERE responsavel = '{session['username']}'", conn
         )
-        conn.commit()
+        # Fecha a conexão com o banco de dados
+        conn.close()
 
-        # Seleciona os arquivos duplicados e imprime o resultado
-        cursor = c.execute(
-            "SELECT caminho, COUNT(*) FROM arquivos GROUP BY caminho HAVING COUNT(*) > 1"
+        # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
+        df["projeto"] = (
+            "<a href='/projetos/" + df["projeto"] + "'>" + df["projeto"] + "</a>"
         )
-        duplicados = cursor.fetchall()
 
-        print("Arquivos duplicados:")
-        for dup in duplicados:
-            print(f"Nome do arquivo: {dup[0]} - Quantidade: {dup[1]}")
+        # Renderiza a página "user.html" e passa os dados da tabela "arquivos" para a variável "tabela"
+        tabela = df.to_html(
+            classes="table table-striped table-user", escape=False, index=False
+        )
 
-# Fecha a conexão com o banco de dados
-conn.close()
+        return render_template(
+            "projetos.html", username=username, login_time=login_time, tabela=tabela
+        )
+    else:
+        # redirecionando para a página de login se o nome de usuário não estiver na sessão
+        return redirect("/")
 
 
-# Busca os valores que vao para a tabela de projeto dos usuarios
-def get_data():
+@app.route("/user")
+def projetos():
+    if (
+        "username" in session
+    ):  # verificando se o nome de usuário está armazenado na sessão
+        # recuperando o nome de usuário da sessão
+        username = session["username"]
+        login_time = session["login_time"]
+
+        # Renderiza o template com o nome e o caminho do último arquivo adicionado pelo usuário logado
+
+        return render_template("user.html", username=username, login_time=login_time)
+    else:
+        # redirecionando para a página de login se o nome de usuário não estiver na sessão
+        return redirect("/")
+
+
+# Rota para abrir os documentos de um determinado projeto
+@app.route("/projetos/<projeto>")
+def documentos(projeto):
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("SELECT nome, projeto FROM arquivos")
-    data = c.fetchall()
+    c.execute("SELECT * FROM arquivos WHERE projeto=?", (projeto,))
+    documentos = c.fetchall()
     conn.close()
-    return data
+
+    return render_template("documentos.html", projeto=projeto, documentos=documentos)
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")

@@ -28,10 +28,12 @@
     {% extends 'base.html' %}
 
     {% block content %}
-    <h1>{% block title %} Meus Projetos {% endblock %}</h1>
+    <h1>{% block title %} Todos Projetos {% endblock %}</h1>
 
+    {{ tabela | safe }}
 
     {% endblock %}
+
 
 </body>
 
