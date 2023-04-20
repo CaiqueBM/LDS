@@ -4,16 +4,13 @@ import datetime
 import sqlite3
 import cria_tabelas
 from flask_bootstrap import Bootstrap
-from flask_sqlalchemy import SQLAlchemy
+
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+
 app.static_folder = "static"
 app.secret_key = "2@2"
 bootstrap = Bootstrap(app)
-
-
-db = SQLAlchemy(app)
 
 
 @app.route("/")
