@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Página secreta</title>
+    <title>Meus Projetos</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
@@ -30,6 +30,7 @@
     {% block content %}
     <h1>{% block title %} Meus Projetos {% endblock %}</h1>
 
+    {{ tabela_projetos | safe }}
 
     {% endblock %}
 

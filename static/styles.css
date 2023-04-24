@@ -243,3 +243,23 @@ h1 {
 .table-documentos tbody tr:hover {
     background-color: #ddd;
 }
+
+/*Estilo para o botao de voltar referrer*/
+.referrer {
+    float: left;
+    margin-right: 20px;
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #336699;
+    text-decoration: none;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+
+}
+
+.referrer:hover {
+    background-color: #000000;
+    color: #fff;
+}
