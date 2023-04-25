@@ -14,6 +14,7 @@ import sqlite3
 import cria_tabelas
 from flask_bootstrap import Bootstrap
 
+df_tabela = pd.DataFrame
 
 app = Flask(__name__)
 
@@ -71,21 +72,12 @@ def logout():
 
 @app.route("/projetos")
 def user():
-    if (
-        "username" in session
-    ):  # verificando se o nome de usuário está armazenado na sessão
-        # recuperando o nome de usuário da sessão
+    if "username" in session:
         username = session["username"]
         login_time = session["login_time"]
 
         conn = sqlite3.connect("database.db")
-        # Consulta na tabela "arquivos" com base no nome do usuário logado
-        df = pd.read_sql_query(
-            f"SELECT DISTINCT projeto FROM arquivos",
-            conn
-            # f"SELECT * FROM arquivos WHERE responsavel = '{session['username']}'", conn
-        )
-        # Fecha a conexão com o banco de dados
+        df = pd.read_sql_query(f"SELECT DISTINCT projeto FROM arquivos", conn)
         conn.close()
 
         # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
@@ -108,23 +100,25 @@ def user():
 
 @app.route("/user")
 def projetos():
+    global df_tabela
+
     if "username" in session:
         # recuperando o nome de usuário da sessão
         username = session["username"]
         login_time = session["login_time"]
 
         conn = sqlite3.connect("database.db")
-        df = pd.read_sql_query(
+        df_tabela = pd.read_sql_query(
             f"SELECT nome, status, responsavel, data_avaliacao FROM arquivos WHERE responsavel = '{username}'",
+            # f"SELECT * FROM arquivos WHERE responsavel = '{session['username']}'", conn
             conn,
         )
 
         # Feche a conexão com o banco de dados
         conn.close()
-        tabela_projetos = df.to_html(
+        tabela_projetos = df_tabela.to_html(
             classes="table table-striped table-user", escape=False, index=False
         )
-        # Renderiza o template com o nome e o caminho do último arquivo adicionado pelo usuário logado
 
         return render_template(
             "user.html",
@@ -140,13 +134,21 @@ def projetos():
 # Rota para abrir os documentos de um determinado projeto
 @app.route("/projetos/<projeto>")
 def documentos(projeto):
+    global df_tabela
+
     username = session["username"]
     login_time = session["login_time"]
 
     conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM arquivos WHERE projeto=?", (projeto,))
-    documentos = c.fetchall()
+    # c = conn.cursor()
+    # c.execute(f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''')
+    # documentos = c.fetchall()
+    df_tabela = pd.read_sql_query(
+        f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''',
+        conn,
+    )
+    documentos = [tuple(row) for row in df_tabela.values]
+
     conn.close()
 
     # obtém a URL da página anterior
@@ -168,24 +170,28 @@ def documentos(projeto):
     return response
 
 
-@app.route("/salvar_responsavel", methods=["POST"])
-def salvar_responsavel():
-    username = request.form["username"]
-    projeto = request.form["projeto"]
-    now = datetime.datetime.now()
-    data_clique = now.strftime("%d/%m/%Y")
+@app.route("/atualizar_linha", methods=["POST"])
+def atualizar_linha():
+    global df_tabela
 
-    # Salva o responsável no banco de dados
+    projeto = request.form["projeto"]
+    linha_selecionada = request.form.getlist("selecionados")
+
+    df_tabela["linha"] = 0
+    for linha in linha_selecionada:
+        df_tabela["linha"] = 1
+
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute(
-        "UPDATE arquivos SET responsavel=?, data_avaliacao=? WHERE projeto=?",
-        (username, data_clique, projeto),
-    )
+
+    # Define todas as linhas para 0, exceto a selecionada, que será atualizada para 1
+    c.execute("UPDATE arquivos SET linha = 0 WHERE projeto = ?", (projeto,))
+    for linha in linha_selecionada:
+        c.execute("UPDATE arquivos SET linha = 1 WHERE id = ?", (linha,))
 
     conn.commit()
     conn.close()
-
+    df_tabela.drop(df_tabela.index, inplace=True)
     return redirect(url_for("documentos", projeto=projeto))
 
 

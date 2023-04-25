@@ -1,4 +1,13 @@
-from flask import Flask, session, render_template, request, redirect, url_for, flash
+from flask import (
+    Flask,
+    session,
+    render_template,
+    make_response,
+    request,
+    redirect,
+    url_for,
+    flash,
+)
 import pandas as pd
 import datetime
 import sqlite3
@@ -7,6 +16,7 @@ from flask_bootstrap import Bootstrap
 
 
 app = Flask(__name__)
+
 app.static_folder = "static"
 app.secret_key = "2@2"
 bootstrap = Bootstrap(app)
@@ -67,8 +77,6 @@ def user():
         # recuperando o nome de usuário da sessão
         username = session["username"]
         login_time = session["login_time"]
-        # now = datetime.datetime.now()
-        # login_time = now.strftime("%d/%m/%Y %H:%M:%S")
 
         conn = sqlite3.connect("database.db")
         # Consulta na tabela "arquivos" com base no nome do usuário logado
@@ -100,16 +108,30 @@ def user():
 
 @app.route("/user")
 def projetos():
-    if (
-        "username" in session
-    ):  # verificando se o nome de usuário está armazenado na sessão
+    if "username" in session:
         # recuperando o nome de usuário da sessão
         username = session["username"]
         login_time = session["login_time"]
 
+        conn = sqlite3.connect("database.db")
+        df = pd.read_sql_query(
+            f"SELECT nome, status, responsavel, data_avaliacao FROM arquivos WHERE responsavel = '{username}'",
+            conn,
+        )
+
+        # Feche a conexão com o banco de dados
+        conn.close()
+        tabela_projetos = df.to_html(
+            classes="table table-striped table-user", escape=False, index=False
+        )
         # Renderiza o template com o nome e o caminho do último arquivo adicionado pelo usuário logado
 
-        return render_template("user.html", username=username, login_time=login_time)
+        return render_template(
+            "user.html",
+            username=username,
+            login_time=login_time,
+            tabela_projetos=tabela_projetos,
+        )
     else:
         # redirecionando para a página de login se o nome de usuário não estiver na sessão
         return redirect("/")
@@ -118,13 +140,55 @@ def projetos():
 # Rota para abrir os documentos de um determinado projeto
 @app.route("/projetos/<projeto>")
 def documentos(projeto):
+    username = session["username"]
+    login_time = session["login_time"]
+
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("SELECT * FROM arquivos WHERE projeto=?", (projeto,))
+    c.execute(f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''')
     documentos = c.fetchall()
     conn.close()
 
-    return render_template("documentos.html", projeto=projeto, documentos=documentos)
+    # obtém a URL da página anterior
+    referrer = request.referrer
+
+    response = make_response(
+        render_template(
+            "documentos.html",
+            username=username,
+            login_time=login_time,
+            projeto=projeto,
+            documentos=documentos,
+            referrer=referrer,
+        )
+    )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.route("/salvar_responsavel", methods=["POST"])
+def salvar_responsavel():
+    data = request.get_json()
+    username = request.form["username"]
+    projeto = request.form["projeto"]
+    selecionados = data["selecionados"]
+    now = datetime.datetime.now()
+    data_clique = now.strftime("%d/%m/%Y")
+
+    # Salva o responsável no banco de dados
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute(
+        "UPDATE arquivos SET responsavel=?, data_avaliacao=? WHERE projeto=? AND linha=?",
+        (username, data_clique, projeto),
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("documentos", projeto=projeto))
 
 
 if __name__ == "__main__":

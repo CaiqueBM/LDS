@@ -34,9 +34,10 @@ c.execute(
 c.execute(
     """
     CREATE TABLE IF NOT EXISTS arquivos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT,
         projeto TEXT,
-        caminho TEXT PRIMARY KEY,
+        caminho TEXT UNIQUE,
         status TEXT,
         responsavel TEXT,
         data_criado TEXT,
@@ -45,6 +46,7 @@ c.execute(
         aprovador TEXT,
         data_aprovado TEXT,
         descricao TEXT
+        linha INTEGER
     )
 """
 )
