@@ -71,7 +71,7 @@ def logout():
 
 
 @app.route("/projetos")
-def user():
+def projetos():
     if "username" in session:
         username = session["username"]
         login_time = session["login_time"]
@@ -99,7 +99,7 @@ def user():
 
 
 @app.route("/user")
-def projetos():
+def user():
     global df_tabela
 
     if "username" in session:
@@ -173,24 +173,43 @@ def documentos(projeto):
 @app.route("/atualizar_linha", methods=["POST"])
 def atualizar_linha():
     global df_tabela
+    status = [
+        "Criado",
+        "Em desenvolvimento",
+        "Para avaliação",
+        "Para revisão",
+        "Para entrega",
+    ]
+
+    username = session["username"]
+    now = datetime.datetime.now()
+    data_criado = now.strftime("%d/%m/%Y %H:%M:%S")
 
     projeto = request.form["projeto"]
     linha_selecionada = request.form.getlist("selecionados")
+    linha_selecionada = list(map(int, linha_selecionada))
 
-    df_tabela["linha"] = 0
-    for linha in linha_selecionada:
-        df_tabela["linha"] = 1
+    df_tabela.loc[df_tabela["id"].isin(linha_selecionada), "responsavel"] = username
+    df_tabela.loc[df_tabela["id"].isin(linha_selecionada), "data_criado"] = data_criado
+    df_tabela.loc[df_tabela["id"].isin(linha_selecionada), "status"] = "Criado"
 
     conn = sqlite3.connect("database.db")
-    c = conn.cursor()
 
-    # Define todas as linhas para 0, exceto a selecionada, que será atualizada para 1
-    c.execute("UPDATE arquivos SET linha = 0 WHERE projeto = ?", (projeto,))
-    for linha in linha_selecionada:
-        c.execute("UPDATE arquivos SET linha = 1 WHERE id = ?", (linha,))
+    for index, row in df_tabela.loc[df_tabela["id"].isin(linha_selecionada)].iterrows():
+        # Crie uma instrução SQL de inserção de linha
+        sql = """UPDATE arquivos
+             SET responsavel = ?,
+                 data_criado = ?,
+                 status = ?
+             WHERE id = ?"""
+
+        # Execute a instrução SQL com os valores da linha atual do DataFrame
+        values = (username, data_criado, "Criado", row["id"])
+        conn.execute(sql, values)
 
     conn.commit()
     conn.close()
+
     df_tabela.drop(df_tabela.index, inplace=True)
     return redirect(url_for("documentos", projeto=projeto))
 

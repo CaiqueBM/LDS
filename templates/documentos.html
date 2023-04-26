@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 
 <head>
-    <title>Documentos de {{ projeto }}</title>
+    <title>{{ projeto }}</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 
 </head>
@@ -14,10 +14,6 @@
             <h1>Nome da Empresa</h1>
         </div>
 
-        <div>
-            {% if referrer %}
-            <a class="referrer" href="{{ referrer }}">Voltar</a>
-            {% endif %}
         </div>
         <div>
             <p>Olá, {{ username }}!</p>
@@ -32,9 +28,6 @@
     </header>
     <h1>Documentos de {{ projeto }}</h1>
 
-
-
-
     <table class="table table-striped table-documentos">
         <thead>
             <tr>
@@ -44,10 +37,14 @@
                 <th>Status</th>
                 <th>Responsavel</th>
                 <th>Data Avaliacao</th>
-                <th>Checkbox</th>
             </tr>
         </thead>
         <tbody>
+            <div>
+                <div class="Voltar">
+                    <a href="{{ url_for('projetos') }}" class="referrer">Voltar</a>
+                </div>
+            </div>
             <form action="/atualizar_linha" method="post">
                 <input type="hidden" name="projeto" value="{{ projeto }}">
                 <button type="submit">Enviar</button>
@@ -59,7 +56,6 @@
                     <td>{{ documento[4] }}</td>
                     <td>{{ documento[5] }}</td>
                     <td>{{ documento[7] }}</td>
-                    <td>{{ documento[12] }}</td>
 
                 </tr>
                 {% endfor %}
@@ -68,7 +64,6 @@
         </tbody>
     </table>
     </form>
-
 </body>
 
 </html>

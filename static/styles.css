@@ -56,6 +56,7 @@ button[type="submit"] {
     border-radius: 5px;
     border: none;
     cursor: pointer;
+    font-size: 14px;
 }
 
 button[type="submit"]:hover {
@@ -249,17 +250,17 @@ h1 {
     float: left;
     margin-right: 20px;
     display: inline-block;
-    padding: 8px 16px;
-    border-radius: 4px;
-    background-color: #fff;
-    color: #336699;
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: #336699;
+    color: white;
     text-decoration: none;
-    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
 }
 
 .referrer:hover {
-    background-color: #000000;
-    color: #fff;
+    background-color: #23527c;
+
 }
