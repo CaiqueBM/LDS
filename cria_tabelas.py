@@ -3,6 +3,7 @@ import os
 import re
 import datetime
 
+
 # Define o diretório raiz
 diretorio = r"C:\\Users\\lanch\\Desktop\\Projeto"
 
@@ -51,11 +52,11 @@ c.execute(
 """
 )
 
-
 # Percorre recursivamente todos os diretórios a partir do diretório raiz
 for raiz, _, arquivos in os.walk(diretorio):
     for nome_arquivo in arquivos:
-        # Para cada arquivo, extraia o nome do projeto a partir do caminho completo usando uma expressão regular
+        # Para cada arquivo, extraia o nome do projeto a partir do caminho
+        # completo usando uma expressão regular
         caminho_completo = os.path.join(raiz, nome_arquivo)
         projeto = re.search(r"(?<=\\)[0-9]+ - (.+?)(?=\\)", caminho_completo)
         projeto_arquivo = projeto.group(1) if projeto else None
