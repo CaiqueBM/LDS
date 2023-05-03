@@ -4,7 +4,9 @@
 <head>
     <title>{{ projeto }}</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
-
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
 </head>
 
 <body>
@@ -32,7 +34,59 @@
     {% block content %}
 
 
+
     <h1>Documentos de {{ projeto }}</h1>
+
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+        Criar novo arquivo
+    </button>
+
+    <!-- Popup -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Criar novo arquivo</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="criarArquivoForm" method="POST" action="{{ url_for('criar_arquivo') }}">
+                        <div class="form-group row">
+                            <div class="col-9">
+                                <label for="nome">Nome do arquivo:</label>
+                                <input type="text" class="form-control" id="nome" name="nome_arquivo">
+                            </div>
+
+                            <div class="col-3">
+                                <label for="nome">Extensao:</label>
+                                <select class="form-control form-control" id="extensao" name="extensao_arquivo">
+                                    <option value="dwg">dwg</option>
+                                </select>
+
+                            </div>
+
+
+                        </div>
+                        <div class="form-group">
+                            <label for="arquivos">Arquivos existentes:</label>
+                            <input type="hidden" name="projeto" value="{{ projeto }}">
+                            <select class="form-control" id="arquivos" name="arquivo_existente">
+                                {% for arquivo in arquivos %}
+                                <option value="{{ arquivo }}">{{ arquivo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                            <button type="submit" class="btn btn-primary" form="criarArquivoForm">Criar arquivo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <table class="table table-striped table-documentos">
         <thead>
@@ -48,7 +102,7 @@
         <tbody>
             <form action="/atualizar_linha" method="post">
                 <input type="hidden" name="projeto" value="{{ projeto }}">
-                <button type="submit">Enviar</button>
+                <button type="submit" class="btn btn-primary">Enviar</button>
                 {% for documento in documentos %}
                 <tr>
                     <td><input type="checkbox" name="selecionados" value="{{ documento[0] }}"></td>

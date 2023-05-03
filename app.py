@@ -11,10 +11,14 @@ from flask import (
 import pandas as pd
 import datetime
 import sqlite3
-import cria_tabelas
+from cria_tabelas import gerar
 from flask_bootstrap import Bootstrap
+import os
+import re
+import shutil
+import difflib
 
-
+gerar()
 df_tabela = pd.DataFrame
 
 app = Flask(__name__)
@@ -75,12 +79,13 @@ def logout():
 @app.route("/user")
 def user():
     global df_tabela
+    gerar()
 
     if "username" in session:
         # recuperando o nome de usuário da sessão
         username = session["username"]
         login_time = session["login_time"]
-
+        gerar()
         conn = sqlite3.connect("database.db")
         df_tabela = pd.read_sql_query(
             f"SELECT DISTINCT projeto FROM arquivos WHERE responsavel = '{username}'",
@@ -111,6 +116,7 @@ def user():
 @app.route("/user/<projeto>", methods=["GET", "POST"])
 def user_projetos(projeto):
     global df_tabela
+
     username = session["username"]
     login_time = session["login_time"]
 
@@ -141,11 +147,12 @@ def user_projetos(projeto):
     return response
 
 
-@app.route("/projetos")
+@app.route("/projetos", methods=["GET"])
 def projetos():
     if "username" in session:
         username = session["username"]
         login_time = session["login_time"]
+        gerar()
         global df_tabela
 
         conn = sqlite3.connect("database.db")
@@ -163,7 +170,10 @@ def projetos():
 
         # Renderiza a página "user.html" e passa os dados da tabela "arquivos" para a variável "tabela"
         tabela = df_tabela.to_html(
-            classes="table table-striped table-user", escape=False, index=False
+            classes="table table-striped table-user",
+            escape=False,
+            index=False,
+            table_id="myTable",
         )
 
         return render_template(
@@ -182,6 +192,10 @@ def documentos(projeto):
     username = session["username"]
     login_time = session["login_time"]
 
+    diretorio = r"C:\\Users\\lanch\\Desktop\\Default"
+
+    arquivos_na_pasta = [arquivo for arquivo in os.listdir(diretorio)]
+
     conn = sqlite3.connect("database.db")
     df_tabela = pd.read_sql_query(
         f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''',
@@ -198,6 +212,7 @@ def documentos(projeto):
             login_time=login_time,
             projeto=projeto,
             documentos=documentos,
+            arquivos=arquivos_na_pasta,
         )
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -208,7 +223,7 @@ def documentos(projeto):
 
 # ----------------------- Atualizacao dos responsaveis e status ----------------
 
-
+'''
 @app.route("/atualizar_linha", methods=["POST"])
 def atualizar_linha():
     global df_tabela
@@ -257,6 +272,8 @@ def atualizar_linha():
 
 # Criar aqui a rota para mudar status dentro da pagina dos projetos do usuario
 # Mudar de status assim que clicado no botao, salvando o nome do usuario e a data do clique
+
+'''
 
 
 @app.route("/atualizar_status", methods=["POST"])
@@ -317,10 +334,95 @@ def atualizar_status():
     return redirect(url_for("user_projetos", projeto=projeto))
 
 
-# --------------------------------------------------------------------------------
-# Criar listbox com todos os padroes de arquivos para criar e um formulario para
-# criar um nome para o novo documento dentro da pasta de projetos do usuario
-# --------------------------------------------------------------------------------
+# -------------------------------------- CRIAR ARQUIVOS --------------------------------------
+
+
+@app.route("/criar_arquivo", methods=["POST"])
+def criar_arquivo():
+    global df_tabela
+    projeto = request.form["projeto"]
+    username = session["username"]
+    now = datetime.datetime.now()
+    data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
+    diretorio_novos = os.path.join(
+        r"C:\Users\lanch\Desktop\Projeto",
+        difflib.get_close_matches(
+            projeto, os.listdir(r"C:\Users\lanch\Desktop\Projeto")
+        )[0],
+    )
+    diretorio_default = r"C:\\Users\\lanch\\Desktop\\Default"
+
+    nome_arquivo = request.form["nome_arquivo"]
+    extensao = request.form["extensao_arquivo"]
+    arquivo_existente = request.form["arquivo_existente"]
+
+    nome_arquivo = nome_arquivo + "_Rev0" + "." + extensao
+
+    nova_linha = df_tabela.index[-1]
+
+    df_tabela["nome"][nova_linha] = nome_arquivo
+    df_tabela["responsavel"][nova_linha] = username
+    df_tabela["status"][nova_linha] = "Criado"
+    df_tabela["data_criado"][nova_linha] = data_atualizada
+
+    caminho_origem = os.path.join(diretorio_default, arquivo_existente)
+
+    # Caminho de destino tem que ser a pasta do usuario na area de trabalho
+    caminho_destino = os.path.join(
+        diretorio_novos,
+        "Arquivos do Projeto",
+        "Area de Trabalho",
+        username,
+        nome_arquivo,
+    )
+
+    shutil.copyfile(caminho_origem, caminho_destino)
+
+    projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
+    projeto_arquivo = projeto_arquivo.group(1) if projeto else None
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO arquivos (nome, status, responsavel, data_criado, caminho, projeto) VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            nome_arquivo,
+            "Criado",
+            username,
+            data_atualizada,
+            caminho_destino,
+            projeto_arquivo,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("documentos", projeto=projeto))
+
+
+@app.route("/criar_projeto", methods=["POST"])
+def criar_projeto():
+    diretorio = r"C:\Users\lanch\Desktop\Projeto"
+    pasta_default = r"C:\Users\lanch\Desktop\Projeto\3 - Caique"
+    nome_projeto = request.form["nome_projeto"]
+    tipo_projeto = request.form["tipo_projeto"]
+
+    projetos = os.listdir(diretorio)
+    maior_numero = 0
+    for projeto in projetos:
+        numero = re.search(r"^(\d+) -", projeto)
+        if numero:
+            numero_int = int(numero.group(1))
+            if numero_int > maior_numero:
+                maior_numero = numero_int
+    numero_projeto = maior_numero + 1
+    nome_projeto = str(numero_projeto) + " - " + nome_projeto + "-ABS-" + tipo_projeto
+
+    pasta_atualizada = os.path.join(diretorio, nome_projeto)
+
+    shutil.copytree(pasta_default, pasta_atualizada)
+    gerar()
+    return redirect(url_for("projetos"))
 
 
 # --------------------------------------------------------------------------------

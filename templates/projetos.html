@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <title>Todos Projetos</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
 </head>
 
 <body>
@@ -32,9 +34,50 @@
     {% block content %}
     <h1>{% block title %} Todos Projetos {% endblock %}</h1>
 
+
+
+    <!-- Botão que abre o modal -->
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+        Criar projeto
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Criar novo projeto</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('criar_projeto') }}" method="post">
+                        <div class="form-group">
+                            <label for="nome_projeto">Nome do projeto:</label>
+                            <input type="text" class="form-control" id="nome_projeto" name="nome_projeto">
+                        </div>
+                        <div class="form-group">
+                            <label for="tipo_projeto">Tipo do projeto:</label>
+                            <select class="form-control" id="tipo" name="tipo_projeto">
+                                <option value="ELE">Eletrico - ELE</option>
+                            </select>
+
+                        </div>
+                        <button type="submit" class="btn btn-primary">Criar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
     {{ tabela | safe }}
 
     {% endblock %}
+
+
 
 
 </body>
