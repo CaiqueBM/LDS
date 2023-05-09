@@ -13,7 +13,6 @@
     <header>
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
-            <h1>Nome da Empresa</h1>
         </div>
 
         </div>
@@ -32,8 +31,6 @@
     {% extends 'base.html' %}
 
     {% block content %}
-
-
 
     <h1>Documentos de {{ projeto }}</h1>
 
@@ -87,23 +84,26 @@
             </div>
         </div>
     </div>
+    <input type="hidden" name="projeto" value="{{ projeto }}">
+    <button type="submit" class="btn btn-primary">Enviar</button>
+    {% for status in status_list %}
 
-    <table class="table table-striped table-documentos">
-        <thead>
-            <tr>
-                <th>Selecionar</th>
-                <th>Nome do arquivo</th>
-                <th>Data de criação</th>
-                <th>Status</th>
-                <th>Responsavel</th>
-                <th>Data Avaliacao</th>
-            </tr>
-        </thead>
-        <tbody>
-            <form action="/atualizar_linha" method="post">
-                <input type="hidden" name="projeto" value="{{ projeto }}">
-                <button type="submit" class="btn btn-primary">Enviar</button>
-                {% for documento in documentos %}
+    <details>
+        <summary>{{ status }}</summary>
+        <table class="table table-striped table-documentos">
+            <thead>
+                <tr>
+                    <th>Selecionar</th>
+                    <th>Nome do arquivo</th>
+                    <th>Data de criação</th>
+                    <th>Status</th>
+                    <th>Responsavel</th>
+                    <th>Data Avaliacao</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for documento in documentos if documento[4] == status %}
                 <tr>
                     <td><input type="checkbox" name="selecionados" value="{{ documento[0] }}"></td>
                     <td>{{ documento[1] }}</td>
@@ -114,10 +114,12 @@
 
                 </tr>
                 {% endfor %}
-            </form>
 
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </details>
+    {% endfor %}
+
     </form>
     {% endblock %}
 </body>

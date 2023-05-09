@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <title>{{ projeto }}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
+        </div>
+
+        </div>
+        <div>
+            <p>Olá, {{ username }}!</p>
+            <p>Data e hora de login: {{ login_time }}</p>
+        </div>
+        <div>
+            <div class="sair">
+                <a href="{{ url_for('logout') }}" class="logout-link">Sair</a>
+            </div>
+        </div>
+
+    </header>
+    {% extends 'base.html' %}
+
+    {% block content %}
+
+
+    <h1>Documentos de {{ projeto }}</h1>
+    <form action="/atualizar_status" method="post">
+        <input type="hidden" name="projeto" value="{{ projeto }}">
+        <input type="hidden" name="caminho" value="{{ caminho }}">
+        <button type="submit">Mudar Status</button>
+        {% for status in status_list %}
+        <details>
+            <summary>{{ status }}</summary>
+            <!-- Tabela com todos os projetos que o usuario esta responsavel-->
+            <table class="table table-striped table-documentos">
+                <thead>
+                    <tr>
+                        <th>Selecionar</th>
+                        <th>Nome do arquivo</th>
+                        <th>Data de criação</th>
+                        <th>Status</th>
+                        <th>Responsavel</th>
+                        <th>Data Avaliacao</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    {% for doc in doc if doc[4] == status %}
+                    <tr>
+                        <td><input type="checkbox" name="selecionados" value="{{ doc[0] }}"></td>
+                        <td>{{ doc[1] }}</td>
+                        <td>{{ doc[2] }}</td>
+                        <td>{{ doc[4] }}</td>
+                        <td>{{ doc[5] }}</td>
+                        <td>{{ doc[7] }}</td>
+
+                    </tr>
+                    {% endfor %}
+    </form>
+
+    </tbody>
+    </table>
+    </details>
+    {% endfor %}
+    </form>
+    {% endblock %}
+
+</body>
+
+</html>

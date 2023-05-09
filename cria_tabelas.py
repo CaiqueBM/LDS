@@ -38,7 +38,7 @@ def gerar():
         """
         CREATE TABLE IF NOT EXISTS arquivos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
+            nome TEXT UNIQUE,
             projeto TEXT,
             caminho TEXT UNIQUE,
             status TEXT,

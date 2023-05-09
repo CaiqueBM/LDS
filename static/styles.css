@@ -265,3 +265,42 @@ h1 {
     background-color: #23527c;
 
 }
+
+details {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+details[open] {
+    background-color: #f1f1f1;
+}
+
+summary {
+    cursor: pointer;
+    padding: 10px;
+    font-weight: bold;
+}
+
+@media screen and (max-width: 600px) {
+    details {
+        margin-left: -10px;
+        margin-right: -10px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid #ddd;
+        border-bottom: 1px solid #ddd;
+    }
+
+    summary {
+        padding: 10px 0;
+    }
+}
+
+.logo img {
+    width: 250px;
+    height: 150px;
+    margin-bottom: 10px;
+}
