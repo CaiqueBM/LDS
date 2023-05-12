@@ -12,20 +12,30 @@ from flask import (
 import pandas as pd
 import datetime
 import sqlite3
+from babkuppy import para_avaliacao
 from cria_tabelas import gerar
 from flask_bootstrap import Bootstrap
 import os
 import re
 import shutil
 import difflib
-import zipfile
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired
+
+app = Flask(__name__)
+
+
+class NameForm(FlaskForm):
+    name = StringField("Nome", validators=[DataRequired()])
+    submit = SubmitField("Enviar")
 
 
 gerar()
 df_tabela = pd.DataFrame
 diretorio_raiz = r"C:\Users\lanch\Desktop\Projeto"
-
-app = Flask(__name__)
+valor = False
+pasta_destino = ""
 
 
 app.static_folder = "static"
@@ -118,6 +128,8 @@ def user():
 @app.route("/user/<projeto>", methods=["GET", "POST"])
 def user_projetos(projeto):
     global df_tabela
+    global valor
+    global pasta_destino
 
     username = session["username"]
     login_time = session["login_time"]
@@ -131,6 +143,7 @@ def user_projetos(projeto):
     )
 
     conn.close()
+    nome_pasta = False
     doc = [tuple(row) for row in df_tabela.values]
     # obtém a URL da página anterior
     status_list = df_tabela["status"].unique()
@@ -143,6 +156,9 @@ def user_projetos(projeto):
             projeto=projeto,
             status_list=status_list,
             doc=doc,
+            nome_pasta=nome_pasta,
+            valor=valor,
+            pasta_destino=pasta_destino,
         )
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -241,10 +257,13 @@ def documentos(projeto):
 # ---------------------------- Atualizar o status do responsavel ------------------
 
 
-@app.route("/atualizar_status", methods=["POST"])
+@app.route("/atualizar_status", methods=["GET", "POST"])
 def atualizar_status():
     global df_tabela
     global diretorio_raiz
+    global valor
+    global pasta_destino
+
     status = [
         "Criado",
         "Em Desenvolvimento",
@@ -272,6 +291,9 @@ def atualizar_status():
     # Precisa de uma logica para verificar o status atual de cada arquivo marcado na checkbox
     pasta_destino = ""
 
+    """Criar uma lista para mandar todos os arquivos ja enviados e seus status, para
+    testar e ter um status para gerar o modal """
+
     if status_atual[0] == "Criado":
         if caminho_projeto is not None:
             projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0])
@@ -288,6 +310,7 @@ def atualizar_status():
             query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
             c.execute(query)
             conn.commit()
+            # df_newstatus.loc[len(df_newstatus)] = [novo_caminho, novo_status]
 
         conn.close()
     elif status_atual[0] == "Em Desenvolvimento":
@@ -311,17 +334,34 @@ def atualizar_status():
             query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
             c.execute(query)
             conn.commit()
+            # df_newstatus.loc[len(df_newstatus)] = [novo_caminho, novo_status]
             shutil.move(caminho_projeto[i], pasta_destino)
 
         conn.close()
     elif status_atual[0] == "Para Avaliacao":
+        valor = True
         if caminho_projeto is not None:
             projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0])
             projeto_arquivo = projeto_arquivo.group(0)
 
-        pasta_destino = os.path.join(
-            diretorio_raiz, projeto_arquivo, "Arquivos do Projeto", "Para Entrega"
+        # Cria uma pasta com nome aleatorio
+        caminho_atual = os.path.join(
+            diretorio_raiz,
+            projeto_arquivo,
+            "Arquivos do Projeto",
+            "Para Entrega",
+            "novapasta",
         )
+
+        os.makedirs(caminho_atual, exist_ok=True)
+        pasta_destino = os.path.join(
+            diretorio_raiz,
+            projeto_arquivo,
+            "Arquivos do Projeto",
+            "Para Entrega",
+            "novapasta",
+        )
+
         # Itera sobre os resultados e move cada arquivo para a pasta de destino
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
@@ -339,36 +379,103 @@ def atualizar_status():
 
         conn.close()
 
-    return redirect(url_for("user_projetos", projeto=projeto))
+    return redirect(
+        url_for(
+            "user_projetos",
+            projeto=projeto,
+            valor=valor,
+            pasta_destino=pasta_destino,
+        )
+    )
 
 
-# ----------------------------------- ZIPAR ARQUIVOS -----------------------------
-"""@app.route("/zip", methods=["POST"])
-def zip_files():
-    linha_selecionada = request.form.getlist("selecionados")
-    # linha_selecionada = linha_selecionada.split(",")
-    linha_selecionada = list(map(int, linha_selecionada))
-    tamanho = len(linha_selecionada)
+@app.route("/renomear_pasta", methods=["POST"])
+def renomear_pasta():
+    global df_tabela
+    global valor
+    global pasta_destino
+
+    valor = False
+    projeto = request.form["projeto"]
+    nome_pasta = request.form["nome_pasta"]
+    caminho_projeto = request.form["caminho"]
 
     conn = sqlite3.connect("database.db")
     query = "SELECT * FROM arquivos"
-    df_tabela = pd.read_sql_query(query, conn)
-    df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
-    nome_arq = df_selecionado["nome"].values.tolist()
-    caminho_projeto = df_selecionado["caminho"].values.tolist()
-    status_atual = df_selecionado["status"].values.tolist()
-    id_documentos = df_selecionado["id"].values.tolist()
+    df_renomear = pd.read_sql_query(query, conn)
     conn.close()
 
-    zip_filename = "GRD-" + status_atual + ".zip"  # nome do arquivo ZIP ()
+    projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
+    projeto_arquivo = projeto_arquivo.group(0)
 
-    with zipfile.ZipFile(zip_filename, "w") as zip:
-        # Adiciona cada arquivo no diretório ao arquivo ZIP
-        for file in os.listdir(caminho_projeto):
-            if os.path.isfile(os.path.join(caminho_projeto, file)):
-                zip.write(os.path.join(caminho_projeto, file), file)
-    # Envia o arquivo ZIP de volta para o cliente
-    return send_file(zip_filename, mimetype="zip", as_attachment=True)"""
+    caminho_atual = os.path.join(
+        diretorio_raiz,
+        projeto_arquivo,
+        "Arquivos do Projeto",
+        "Para Entrega",
+        "novapasta",
+    )
+
+    novo_caminho = os.path.join(
+        diretorio_raiz,
+        projeto_arquivo,
+        "Arquivos do Projeto",
+        "Para Entrega",
+        nome_pasta,
+    )
+
+    os.rename(caminho_atual, novo_caminho)
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    for index, row in df_renomear.iterrows():
+        nome_do_arquivo = os.path.basename(row["caminho"])
+        caminho_arq = os.path.join(caminho_atual, nome_do_arquivo)
+
+        if row["caminho"] == caminho_arq:
+            caminho_arq = os.path.join(novo_caminho, nome_do_arquivo)
+            query = f"""UPDATE arquivos SET caminho = '{caminho_arq}' WHERE id = {row["id"]}"""
+            c.execute(query)
+            conn.commit()
+
+    conn.close()
+
+    pasta_destino = ""
+
+    return redirect(
+        url_for(
+            "user_projetos",
+            projeto=projeto,
+            valor=valor,
+        )
+    )
+
+
+@app.route("/revisao", methods=["GET", "POST"])
+def upload_files():
+    if request.method == "POST":
+        projeto = request.form["projeto"]
+        if request.method == "POST":
+            files = request.files.getlist("files[]")
+            pasta_revisao = (
+                os.path.join()
+            )  # Insira o caminho absoluto para a pasta desejada
+
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        for file in files:
+            file_path = os.path.join(folder, file.filename)
+            file.save(file_path)
+
+    return redirect(
+        url_for(
+            "user_projetos",
+            projeto=projeto,
+            valor=valor,
+        )
+    )
 
 
 # -------------------------------------- CRIAR ARQUIVOS --------------------------------------
