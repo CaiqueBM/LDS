@@ -27,14 +27,22 @@
     {% extends 'base.html' %}
     {% block content %}
 
+
     <h1>Documentos de {{ projeto }}</h1>
-    <form action="/revisao" method="post" enctype="multipart/form-data">
+
+    {% if gerar_grd == True %}
+    <form action="/gerar_grd" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="status" value="{{ status }}">
-        <input type="hidden" name="caminho" value="{{ pasta_destino }}">
-        <input type="file" name="files[]" multiple class="upload-button">
-        <input type="submit" value="Enviar">
+
+        <div class="form-group">
+            <label for="nome_pasta">Revisao:</label>
+            <input type="text" class="form-control" id="revisao" name="revisao">
+        </div>
+        <button type="submit" class="btn btn-primary">Gerar GRD</button>
     </form>
+    {% endif %}
+
 
     {% if valor == True %}
     <!-- Adicione o novo formulário para renomear a pasta -->
@@ -48,7 +56,9 @@
         </div>
         <button type="submit" class="btn btn-primary">Renomear Pasta</button>
     </form>
-    {% else %}
+    {% endif %}
+
+    {% if valor == False %}
 
     <form action="/atualizar_status" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">

@@ -12,23 +12,18 @@ from flask import (
 import pandas as pd
 import datetime
 import sqlite3
-from babkuppy import para_avaliacao
+
+# from babkuppy import para_avaliacao
 from cria_tabelas import gerar
 from flask_bootstrap import Bootstrap
 import os
 import re
 import shutil
 import difflib
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
+import openpyxl
+
 
 app = Flask(__name__)
-
-
-class NameForm(FlaskForm):
-    name = StringField("Nome", validators=[DataRequired()])
-    submit = SubmitField("Enviar")
 
 
 gerar()
@@ -36,7 +31,7 @@ df_tabela = pd.DataFrame
 diretorio_raiz = r"C:\Users\lanch\Desktop\Projeto"
 valor = False
 pasta_destino = ""
-
+gerar_grd = False
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -130,6 +125,7 @@ def user_projetos(projeto):
     global df_tabela
     global valor
     global pasta_destino
+    global gerar_grd
 
     username = session["username"]
     login_time = session["login_time"]
@@ -159,6 +155,7 @@ def user_projetos(projeto):
             nome_pasta=nome_pasta,
             valor=valor,
             pasta_destino=pasta_destino,
+            gerar_grd=gerar_grd,
         )
     )
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -254,7 +251,7 @@ def documentos(projeto):
     return response
 
 
-# ---------------------------- Atualizar o status do responsavel ------------------
+# ---------------------------- Atualizar o status do responsavel, gerar GRD ------------------
 
 
 @app.route("/atualizar_status", methods=["GET", "POST"])
@@ -394,6 +391,7 @@ def renomear_pasta():
     global df_tabela
     global valor
     global pasta_destino
+    global gerar_grd
 
     valor = False
     projeto = request.form["projeto"]
@@ -441,33 +439,102 @@ def renomear_pasta():
 
     conn.close()
 
-    pasta_destino = ""
+    gerar_grd = True
+
+    return redirect(
+        url_for("user_projetos", projeto=projeto, valor=valor, gerar_grd=gerar_grd)
+    )
+
+
+@app.route("/gerar_grd", methods=["POST"])
+def gerar_grd():
+    global diretorio_raiz
+    global gerar_grd
+    global pasta_destino
+
+    projeto = request.form["projeto"]
+    caminho_projeto = os.path.dirname(pasta_destino)
+
+    # ------------------- LISTA DE DOCUMENTOS -------------------------
+    # Fazer uma copia da GRD Padrao para a pasta a ser entregue ()
+    caminho_grd_padrao = r"C:\Users\lanch\Desktop\modeloGRD\ABS-AEX-LD-001_R06.xls"
+
+    pastas = []
+    pasta_GRD_recente = None
+    ultima_data_criacao = 0
+    # Percorre todos os diretórios e arquivos no caminho fornecido
+    for diretorio_atual, subdiretorios, arquivos in os.walk(caminho_projeto):
+        for subdiretorio in subdiretorios:
+            pastas.append(subdiretorio)
+
+            # Verifica se o nome da pasta contém "GRD"
+            if re.search(r"GRD", subdiretorio):
+                caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
+                data_criacao = os.path.getctime(caminho_pasta)
+                # Verifica se é a pasta mais recente
+                if data_criacao > ultima_data_criacao:
+                    ultima_data_criacao = data_criacao
+                    pasta_GRD_recente = caminho_pasta
+
+    # Gerar GRD
+    if pasta_GRD_recente is None:
+        # Criaçao de uma nova GRD, primeira entrega
+
+        print("o")
+    else:
+        # Atualizaçao de uma GRD ja existente, subir revisao
+        book = openpyxl.load_workbook(".xlsx")
+        print(book.sheetnames)
+        dados_page = book["F. Rosto"]
+
+        for rows in dados_page.iter_rows():
+            for cell in rows:
+                print(cell.value)
+
+        book.save()
+        print("i")
+
+    gerar_grd = False
 
     return redirect(
         url_for(
             "user_projetos",
             projeto=projeto,
             valor=valor,
+            gerar_grd=gerar_grd,
         )
     )
 
 
+# ----------------------------- REVISAO ---------------------------------------------------
+
+
 @app.route("/revisao", methods=["GET", "POST"])
 def upload_files():
-    if request.method == "POST":
-        projeto = request.form["projeto"]
-        if request.method == "POST":
-            files = request.files.getlist("files[]")
-            pasta_revisao = (
-                os.path.join()
-            )  # Insira o caminho absoluto para a pasta desejada
+    global diretorio_raiz
 
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+    projeto = request.form["projeto"]
 
-        for file in files:
-            file_path = os.path.join(folder, file.filename)
-            file.save(file_path)
+    conn = sqlite3.connect("database.db")
+    query = "SELECT * FROM arquivos"
+    df_renomear = pd.read_sql_query(query, conn)
+    conn.close()
+
+    caminho_projeto = df_renomear.iloc[0]["caminho"]
+
+    projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
+    projeto_arquivo = projeto_arquivo.group(0)
+
+    pasta_revisao = os.path.join(
+        diretorio_raiz, projeto_arquivo, "Arquivos do Projeto", "Para Revisao"
+    )
+
+    files = request.files.getlist("files[]")
+    for file in files:
+        filename = file.filename
+        file.save(os.path.join(pasta_revisao, filename))
+
+    # Guardar novamente na tabela SQL com caminho correto
 
     return redirect(
         url_for(
