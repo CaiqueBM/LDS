@@ -28,14 +28,13 @@ app = Flask(__name__)
 
 gerar()
 df_tabela = pd.DataFrame
-diretorio_raiz = r"C:\Users\lanch\Desktop\Projeto"
-diretorio_default = r"C:\\Users\\lanch\\Desktop\\Default"
+diretorio_raiz = r"E:\ABS\Projeto"
+diretorio_default = r"E:\\ABS\\Default"
 valor = False
 pasta_destino = ""
 gerar_grd = False
 linha_selecionada = ""
 df_projeto = pd.DataFrame(columns=["projeto", "abreviacao", "descricao"])
-novo_caminho = ""
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -127,6 +126,7 @@ def user():
 @app.route("/user/<projeto>", methods=["GET", "POST"])
 def user_projetos(projeto):
     if "username" in session:
+
         global df_tabela
         global valor
         global pasta_destino
@@ -219,6 +219,7 @@ def projetos():
 @app.route("/projetos/<projeto>")
 def documentos(projeto):
     if "username" in session:
+
         global df_tabela
         global diretorio_default
 
@@ -263,6 +264,7 @@ def documentos(projeto):
 @app.route("/atualizar_status", methods=["GET", "POST"])
 def atualizar_status():
     if "username" in session:
+
         global df_tabela
         global diretorio_raiz
         global valor
@@ -300,18 +302,16 @@ def atualizar_status():
         testar e ter um status para gerar o modal """
         if tamanho <= 0:
             return redirect(
-                url_for(
-                    "user_projetos",
-                    projeto=projeto,
-                    valor=valor,
-                    pasta_destino=pasta_destino,
-                )
+            url_for(
+                "user_projetos",
+                projeto=projeto,
+                valor=valor,
+                pasta_destino=pasta_destino,
             )
+        )
         if status_atual[0] == "Criado":
             if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                )
+                projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0])
                 projeto_arquivo = projeto_arquivo.group(0)
 
             # Itera sobre os resultados e move cada arquivo para a pasta de destino
@@ -330,9 +330,7 @@ def atualizar_status():
             conn.close()
         elif status_atual[0] == "Em Desenvolvimento":
             if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                )
+                projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0])
                 projeto_arquivo = projeto_arquivo.group(0)
 
             pasta_destino = os.path.join(
@@ -358,9 +356,7 @@ def atualizar_status():
         elif status_atual[0] == "Para Avaliacao":
             valor = True
             if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                )
+                projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0])
                 projeto_arquivo = projeto_arquivo.group(0)
 
             # Cria uma pasta com nome aleatorio
@@ -411,11 +407,11 @@ def atualizar_status():
 @app.route("/renomear_pasta", methods=["POST"])
 def renomear_pasta():
     if "username" in session:
+        
         global df_tabela
         global valor
         global pasta_destino
         global gerar_grd
-        global novo_caminho
 
         valor = False
         projeto = request.form["projeto"]
@@ -482,14 +478,13 @@ def renomear_pasta():
 @app.route("/gerar_grd", methods=["POST"])
 def gerar_grd():
     if "username" in session:
+
         global diretorio_raiz
         global gerar_grd
         global pasta_destino
         global linha_selecionada
-        global novo_caminho
-        global df_projeto
 
-        nomes = {"Andre": "ABS", "Caique": "CBM", "Renato": "RBSM", "Richard": "RRO"}
+        nomes = {"Andre": "ABS", "Caique": "CBM", "Renato": "RBSM", "Richard": "RSC"}
         tipos = {
             "PRELIMINAR": "A",
             "PARA APROVAÇAO": "B",
@@ -508,19 +503,18 @@ def gerar_grd():
         aprovado = request.form["aprovado"]
         autorizado = request.form["autorizado"]
 
-        projetos_encontrados = df_projeto[df_projeto["projeto"] == projeto]
-        if not projetos_encontrados.empty:
-            index_projeto = projetos_encontrados.index[0]
-            abreviacao_empresa = df_projeto.loc[index_projeto, "abreviacao"]
-            descricao_projeto = df_projeto.loc[index_projeto, "descricao"]
+        projeto = df_projeto.loc[df_projeto["projeto"] == projeto]
+        if len(projeto) > 0:
+            abreviacao_empresa = projeto["abreviacao"].values[0]
+            descricao_projeto = projeto["descricao"].values[0]
 
         caminho_projeto = os.path.dirname(pasta_destino)
 
         # ------------------- LISTA DE DOCUMENTOS -------------------------
         # Fazer uma copia da GRD Padrao para a pasta a ser entregue ()
-        caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
-        caminho_ld_padrao = r"C:\Users\lanch\Desktop\modeloGRD\ABS-AEX-LD-001.xlsx"
-        caminho_grd_padrao = r"C:\Users\lanch\Desktop\modeloGRD\GRD-ABS-AEX-07.xlsx"
+        caminho_padrao = r"E:\ABS\modeloGRD"
+        caminho_ld_padrao = r"E:\ABS\modeloGRD\ABS-AEX-LD-001.xlsx"
+        caminho_grd_padrao = r"E:\ABS\modeloGRD\GRD-ABS-AEX-07.xlsx"
 
         pastas = []
         pasta_GRD_recente = None
@@ -535,35 +529,39 @@ def gerar_grd():
                     caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
                     data_criacao = os.path.getctime(caminho_pasta)
                     # Verifica se é a pasta mais recente
-                    if (
-                        data_criacao > ultima_data_criacao
-                        and caminho_pasta == novo_caminho
-                    ):
-                        data_criacao_anterior = ultima_data_criacao
+                    if data_criacao > ultima_data_criacao:
                         ultima_data_criacao = data_criacao
-                        pasta_GRD_anterior = pasta_GRD_recente
                         pasta_GRD_recente = caminho_pasta
 
         # Gerar LD
-        if pasta_GRD_anterior is None:
+        if pasta_GRD_recente is None:
             # Criaçao de uma nova GRD, primeira entrega
+            app = xw.App(visible=False)
+            workbook = app.books.open(caminho_ld_padrao) 
+
+
+
+
+
+            print("0")
+
+        else:
+            # Atualizaçao de uma GRD ja existente, subir revisao
 
             # Abrir o arquivo Excel
             app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_padrao)  # caminho_ld_existente
+            workbook = app.books.open(caminho_ld_padrao) #caminho_ld_existente
 
             # Obter a planilha desejada
             planilha = workbook.sheets["F. Rosto"]
             # Nome da Empresa-Cidade
             planilha.range("J1").value = projeto  # projeto
             shape_empresa = planilha.shapes["Retângulo: Cantos Arredondados 4"]
-            shape_empresa.text = str(projeto)  # projeto
+            shape_empresa.text = projeto  # projeto
             # Descriçao do projeto
             planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
             # Logica para ler qual a ultima revisao
-            # Dessa forma vai ser utilizado somente quando tiver uma outra
-            # pasta GRD, pois essa sera a primeira revisao
 
             for row in planilha.range("A12:A31").options(ndim=2).value:
                 for cell in row:
@@ -593,9 +591,7 @@ def gerar_grd():
             # Feito por:
             if username in nomes:
                 abreviacao = nomes[username]
-                planilha.range(
-                    "J" + str(X)
-                ).value = abreviacao  # abreviacao do responsavel
+                planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
 
             # Verificado
             planilha.range("K" + str(X)).value = verificado  # quem verificou
@@ -621,14 +617,14 @@ def gerar_grd():
                 + ".xlsx"
             )
             planilha.range("H7").value = nome_ld  # nome da lista de documentos
-            nome_ld = os.path.join(novo_caminho, nome_ld)
-
+            nome_ld = os.path.join(caminho_padrao, nome_ld)
+            
             workbook.save(nome_ld)
 
-            # Modificando a planilha lista
+        #Modificando a planilha lista
             planilha = workbook.sheets["Lista"]
 
-            #
+        #
             for row in planilha.range("A11:A31").options(ndim=2).value:
                 for cell in row:
                     print(cell)
@@ -641,19 +637,15 @@ def gerar_grd():
                             + 1
                         )  # Proxima linha em branco, adicionar os parametros
 
+
+
             workbook.save(nome_ld)
 
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
 
-            print("0")
-
-        else:
-            # Atualizaçao de uma GRD ja existente, subir revisao
-
             pasta_GRD_recente = None
-            pasta_GRD_anterior = None
 
         gerar_grd = False
 
@@ -673,6 +665,7 @@ def gerar_grd():
 @app.route("/revisao", methods=["GET", "POST"])
 def upload_files():
     if "username" in session:
+
         global diretorio_raiz
 
         projeto = request.form["projeto"]
@@ -713,6 +706,7 @@ def upload_files():
 @app.route("/criar_arquivo", methods=["POST"])
 def criar_arquivo():
     if "username" in session:
+
         global df_tabela
         global diretorio_raiz
         global diretorio_default
@@ -724,6 +718,7 @@ def criar_arquivo():
             diretorio_raiz,
             difflib.get_close_matches(projeto, os.listdir(diretorio_raiz))[0],
         )
+        
 
         nome_arquivo = request.form["nome_arquivo"]
         extensao = request.form["extensao_arquivo"]
@@ -778,14 +773,23 @@ def criar_arquivo():
 @app.route("/criar_projeto", methods=["POST"])
 def criar_projeto():
     if "username" in session:
-        global diretorio_raiz
-        global df_projeto
 
+        global diretorio_raiz
         pasta_default = r"C:\Users\lanch\Desktop\Projeto\3 - Caique"
-        nome_projeto_inicial = request.form["nome_projeto"]
+        nome_projeto = request.form["nome_projeto"]
         tipo_projeto = request.form["tipo_projeto"]
         abreviacao_empresa = request.form["abreviacao_empresa"]
         descricao_projeto = request.form["descricao_projeto"]
+
+        # adicionar o nome do projeto, a abreviacao e a descricao do projeto
+        indice = len(df_projeto)
+        todf = {
+            "projeto": nome_projeto,
+            "abreviacao": abreviacao_empresa,
+            "descricao": descricao_projeto,
+        }
+
+        df_projeto.loc[indice] = todf
 
         projetos = os.listdir(diretorio_raiz)
         maior_numero = 0
@@ -796,28 +800,12 @@ def criar_projeto():
                 if numero_int > maior_numero:
                     maior_numero = numero_int
         numero_projeto = maior_numero + 1
-        """nome_projeto = (
-            str(numero_projeto) + " - " + abreviacao_empresa + "-ABS-" + tipo_projeto
-        )"""
+        nome_projeto = str(numero_projeto) + " - " + nome_projeto + "-ABS-" + tipo_projeto
 
-        pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto_inicial)
-
-        # adicionar o nome do projeto, a abreviacao e a descricao do projeto
-        indice = len(df_projeto)
-        todf = {
-            "projeto": nome_projeto_inicial,
-            "abreviacao": abreviacao_empresa,
-            "descricao": descricao_projeto,
-        }
-
-        df_projeto.loc[indice] = todf
+        pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto)
 
         shutil.copytree(pasta_default, pasta_atualizada)
-        return redirect(
-            url_for(
-                "projetos",
-            )
-        )
+        return redirect(url_for("projetos"))
 
 
 # --------------------------------------------------------------------------------

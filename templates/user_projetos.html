@@ -34,10 +34,35 @@
     <form action="/gerar_grd" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="status" value="{{ status }}">
+        <input type="hidden" name="data_envio" value="{{ data_envio }}">
+        <input type="hidden" name="novo_caminho" value="{{ novo_caminho }}">
 
         <div class="form-group">
             <label for="nome_pasta">Revisao:</label>
             <input type="text" class="form-control" id="revisao" name="revisao">
+            <label for="nome_pasta">Tipo:</label>
+            <select form-control id="tipo" name="tipo">
+                <option value="A">A - PRELIMINAR</option>
+                <option value="B">B - PARA APROVAÇAO</option>
+                <option value="C">C - PARA CONHECIMENTO</option>
+                <option value="D">D - PARA COTAÇAO</option>
+                <option value="E">E - PARA CONSTRUÇAO</option>
+                <option value="F">F - CONFORME COMPRADO</option>
+                <option value="G">G - CONFORME CONSTRUIDO</option>
+                <option value="H">H - CANCELADO</option>
+            </select>
+            <label for="nome_pasta">Descriçao:</label>
+            <input type="text" class="form-control" id="descricao" name="descricao">
+            <label for="nome_pasta">Enviado por:</label>
+            <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly>
+            <label for="nome_pasta">Verificado por:</label>
+            <input type="text" class="form-control" id="verificado" name="verificado">
+            <label for="nome_pasta">Verificado por:</label>
+            <input type="text" class="form-control" id="aprovado" name="aprovado">
+            <label for="nome_pasta">Autorizado por:</label>
+            <input type="text" class="form-control" id="autorizado" name="autorizado">
+            <label for="nome_pasta">Data envio:</label>
+            <input id="data" name="data" value="{{ data }}" readonly>
         </div>
         <button type="submit" class="btn btn-primary">Gerar GRD</button>
     </form>
@@ -50,6 +75,7 @@
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="status" value="{{ status }}">
         <input type="hidden" name="caminho" value="{{ pasta_destino }}">
+        <input type="hidden" name="data_envio" value="{{ data_envio }}">
         <div class="form-group">
             <label for="nome_pasta">Novo nome da pasta:</label>
             <input type="text" class="form-control" id="nome_pasta" name="nome_pasta">
@@ -63,6 +89,7 @@
     <form action="/atualizar_status" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="caminho" value="{{ caminho }}">
+        <input type="hidden" name="data_envio" value="{{ data_envio }}">
         <button type="submit">Mudar Status</button>
 
 
