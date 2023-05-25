@@ -51,38 +51,41 @@
                 <div class="modal-body">
                     <form id="criarArquivoForm" method="POST" action="{{ url_for('criar_arquivo') }}">
                         <div class="form-group row">
-                            <div class="col-9">
-                                <label for="nome">Nome do arquivo:</label>
-                                <input type="text" class="form-control" id="nome" name="nome_arquivo">
-                            </div>
-
-                            <div class="col-3">
-                                <label for="nome">Extensao:</label>
-                                <select class="form-control form-control" id="extensao" name="extensao_arquivo">
-                                    <option value="dwg">dwg</option>
-                                </select>
-
-                            </div>
-
 
                         </div>
-                        <div class="form-group">
-                            <label for="arquivos">Arquivos existentes:</label>
-                            <input type="hidden" name="projeto" value="{{ projeto }}">
-                            <select class="form-control" id="arquivos" name="arquivo_existente">
-                                {% for arquivo in arquivos %}
-                                <option value="{{ arquivo }}">{{ arquivo }}</option>
+                        <div class="col-4">
+                            <select class="form-control" id="disc" name="disc">
+                                {% for arq1 in disc %}
+                                <option value="{{ arq1 }}">{{ arq1 }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
-                            <button type="submit" class="btn btn-primary" form="criarArquivoForm">Criar arquivo</button>
+                        <div class="col-6">
+                            <select class="form-control" id="sub" name="sub">
+                                {% for arq2 in sub %}
+                                <option value="{{ arq2 }}">{{ arq2 }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </form>
+
                 </div>
+                <div class="form-group">
+                    <label for="arquivos">Arquivos existentes:</label>
+                    <input type="hidden" name="projeto" value="{{ projeto }}">
+                    <select class="form-control" id="arquivos" name="arquivo_existente">
+                        {% for arquivo in arquivos %}
+                        <option value="{{ arquivo }}">{{ arquivo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary" form="criarArquivoForm">Criar arquivo</button>
+                </div>
+                </form>
             </div>
         </div>
+    </div>
     </div>
     <input type="hidden" name="projeto" value="{{ projeto }}">
     <button type="submit" class="btn btn-primary">Enviar</button>

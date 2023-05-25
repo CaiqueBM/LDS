@@ -6,6 +6,9 @@
     <title>Todos Projetos</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.2/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.11.2/js/jquery.dataTables.min.js"></script>
+
 </head>
 </head>
 
@@ -58,13 +61,6 @@
                             <input type="text" class="form-control" id="abreviacao_empresa" name="abreviacao_empresa">
                             <label for="descricao_projeto">Descriçao do projeto:</label>
                             <input type="text" class="form-control" id="descricao_projeto" name="descricao_projeto">
-                        </div>
-                        <div class="form-group">
-                            <label for="tipo_projeto">Tipo do projeto:</label>
-                            <select class="form-control" id="tipo" name="tipo_projeto">
-                                <option value="ELE">Eletrico - ELE</option>
-                            </select>
-
                         </div>
                         <button type="submit" class="btn btn-primary">Criar</button>
                     </form>

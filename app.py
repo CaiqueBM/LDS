@@ -12,6 +12,7 @@ from flask import (
 import pandas as pd
 import datetime
 import sqlite3
+import csv
 
 # from babkuppy import para_avaliacao
 from cria_tabelas import gerar
@@ -199,7 +200,7 @@ def projetos():
             + "</a>"
         )
 
-        # Renderiza a página "user.html" e passa os dados da tabela "arquivos" para a variável "tabela"
+        # Renderiza a página "projetos.html" e passa os dados da tabela "arquivos" para a variável "tabela"
         tabela = df_link.to_html(
             classes="table table-striped table-user",
             escape=False,
@@ -208,7 +209,10 @@ def projetos():
         )
 
         return render_template(
-            "projetos.html", username=username, login_time=login_time, tabela=tabela
+            "projetos.html",
+            username=username,
+            login_time=login_time,
+            tabela=tabela,
         )
     else:
         # redirecionando para a página de login se o nome de usuário não estiver na sessão
@@ -237,6 +241,19 @@ def documentos(projeto):
 
         status_list = df_tabela["status"].unique()
 
+        disc = []
+        sub = []
+
+        with open("disc.csv", "r", encoding="utf-8") as arquivo:
+            for line in arquivo:
+                fields = line.strip().split(";")
+                disc.append(fields[1])
+
+        with open("sub.csv", "r", encoding="utf-8") as arquivo:
+            for line in arquivo:
+                fields = line.strip().split(";")
+                sub.append(fields[1])
+
         conn.close()
         df_tabela.drop(df_tabela.index, inplace=True)
 
@@ -249,6 +266,8 @@ def documentos(projeto):
                 documentos=documentos,
                 status_list=status_list,
                 arquivos=arquivos_na_pasta,
+                disc=disc,
+                sub=sub,
             )
         )
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -550,20 +569,122 @@ def gerar_grd():
 
             # Abrir o arquivo Excel
             app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_padrao)  # caminho_ld_existente
+            workbook = app.books.open(caminho_ld_padrao)
 
             # Obter a planilha desejada
             planilha = workbook.sheets["F. Rosto"]
             # Nome da Empresa-Cidade
             planilha.range("J1").value = projeto  # projeto
             shape_empresa = planilha.shapes["Retângulo: Cantos Arredondados 4"]
-            shape_empresa.text = str(projeto)  # projeto
+            shape_empresa.text = projeto  # projeto
+            # Descriçao do projeto
+            planilha.range("A5").value = descricao_projeto  # descricao_projeto
+
+            # Logica para adicionar a primeira revisao
+
+            X = 12  # linha 12 é a primeira a ser adicionada a revisao 0
+
+            planilha.range("A" + str(X)).value = ultima_revisao + 1  # Revisao
+
+            # Tipo (TE)
+            if tipo in tipos:
+                te = tipos[tipo]
+                planilha.range("B" + str(X)).value = te  # tipo TE
+
+            # Descriçao
+            planilha.range("D" + str(X)).value = descricao  # descricao_projeto
+
+            # Feito por:
+            if username in nomes:
+                abreviacao = nomes[username]
+                planilha.range(
+                    "J" + str(X)
+                ).value = abreviacao  # abreviacao do responsavel
+
+            # Verificado
+            planilha.range("K" + str(X)).value = verificado  # quem verificou
+
+            # Aprovado
+            planilha.range("L" + str(X)).value = aprovado  # quem aprovou
+
+            # Aut.
+            planilha.range("M" + str(X)).value = autorizado  # descricao_projeto
+
+            # Data de envio
+            now = datetime.datetime.now()
+            data_envio = now.strftime("%d/%m/%Y")
+            planilha.range("N" + str(X)).value = data_envio  # descricao_projeto
+
+            nome_ld = (
+                "ABS-"
+                + abreviacao_empresa
+                + "-LD-"
+                + "001"
+                + "_R"
+                + str(ultima_revisao + 1)
+                + ".xlsx"
+            )
+            planilha.range("H7").value = nome_ld  # nome da lista de documentos
+            nome_ld = os.path.join(caminho_padrao, nome_ld)
+
+            workbook.save(nome_ld)
+
+            # Modificando a planilha LISTA
+            planilha = workbook.sheets["Lista"]
+
+            shape_empresa = planilha.shapes["Retângulo: Cantos Arredondados 4"]
+            shape_empresa.text = projeto  # projeto
+
+            conn = sqlite3.connect("database.db")
+            query = "SELECT * FROM arquivos"
+            df_tabela = pd.read_sql_query(query, conn)
+            df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+            nome_arq = df_selecionado["nome"].values.tolist()
+            status_atual = df_selecionado["status"].values.tolist()
+            id_documentos = df_selecionado["id"].values.tolist()
+            conn.close()
+
+            expressoes = ["LD", "PLT", "LM", "ET", "SPDA"]
+            padrao = r"\b(?:{})\b".format("|".join(expressoes))
+            match = re.search(padrao, nome_arq)
+            if match:
+                expressao_encontrada = match.group(0)
+                # novo_nome = nome_arq.replace(expressao_encontrada, "")
+
+            tamanho = len(linha_selecionada)
+            rangen = 11 + tamanho
+            range_selecionados = "A11:A" + str(rangen)
+
+            for row in planilha.range(range_selecionados).options(ndim=2).value:
+                for cell in row:
+                    planilha.range("B" + str(row)).value = nome_arq[row]
+                    planilha.range("I" + str(row)).value = expressao_encontrada[row]
+
+            workbook.save(nome_ld)
+
+            # Fechar o arquivo Excel
+            workbook.close()
+            app.quit()
+
+            print("0")
+
+        else:
+            # Atualizaçao de uma GRD ja existente, subir revisao
+
+            # Abrir o arquivo Excel
+            app = xw.App(visible=False)
+            workbook = app.books.open(caminho_ld_padrao)
+
+            # Obter a planilha desejada
+            planilha = workbook.sheets["F. Rosto"]
+            # Nome da Empresa-Cidade
+            planilha.range("J1").value = projeto  # projeto
+            shape_empresa = planilha.shapes["Retângulo: Cantos Arredondados 4"]
+            shape_empresa.text = projeto  # projeto
             # Descriçao do projeto
             planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
             # Logica para ler qual a ultima revisao
-            # Dessa forma vai ser utilizado somente quando tiver uma outra
-            # pasta GRD, pois essa sera a primeira revisao
 
             for row in planilha.range("A12:A31").options(ndim=2).value:
                 for cell in row:
@@ -621,7 +742,7 @@ def gerar_grd():
                 + ".xlsx"
             )
             planilha.range("H7").value = nome_ld  # nome da lista de documentos
-            nome_ld = os.path.join(novo_caminho, nome_ld)
+            nome_ld = os.path.join(caminho_padrao, nome_ld)
 
             workbook.save(nome_ld)
 
@@ -646,11 +767,6 @@ def gerar_grd():
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
-
-            print("0")
-
-        else:
-            # Atualizaçao de uma GRD ja existente, subir revisao
 
             pasta_GRD_recente = None
             pasta_GRD_anterior = None
@@ -716,20 +832,74 @@ def criar_arquivo():
         global df_tabela
         global diretorio_raiz
         global diretorio_default
+        global df_projeto
+
         projeto = request.form["projeto"]
         username = session["username"]
+        disciplina = request.form["disc"]
+        sub = request.form["sub"]
+
         now = datetime.datetime.now()
         data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
+
         diretorio_novos = os.path.join(
             diretorio_raiz,
             difflib.get_close_matches(projeto, os.listdir(diretorio_raiz))[0],
         )
 
-        nome_arquivo = request.form["nome_arquivo"]
-        extensao = request.form["extensao_arquivo"]
-        arquivo_existente = request.form["arquivo_existente"]
+        # -------------------- Buscar nome do projeto na pasta --------------------
+        folders = [
+            f
+            for f in os.listdir(diretorio_raiz)
+            if os.path.isdir(os.path.join(diretorio_raiz, f))
+        ]
 
-        nome_arquivo = nome_arquivo + "_Rev0" + "." + extensao
+        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
+        pattern = re.compile(rf".*{re.escape(projeto)}.*", re.IGNORECASE)
+
+        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
+        directory = [f for f in folders if re.match(pattern, f)]
+
+        # -------------------------------------------------------------------------
+
+        projetos_encontrados = df_projeto[df_projeto["projeto"] == projeto]
+        if not projetos_encontrados.empty:
+            index_projeto = projetos_encontrados.index[0]
+            abreviacao_empresa = df_projeto.loc[index_projeto, "abreviacao"]
+
+        nome_arquivo = request.form["nome_arquivo"]
+        arquivo_existente = request.form["arquivo_existente"]
+        name, extension = os.path.splitext(arquivo_existente)
+
+        # --------------- Sequencia dos arquivos ---------------------
+        caminho_projeto = os.path.join(diretorio_raiz, directory)
+
+        # Encontre todos os arquivos no diretório
+        files = os.listdir(caminho_projeto)
+
+        # Expressão regular para extrair o número sequencial do nome do arquivo
+        pattern = r"(\d{3})_R"
+
+        # Inicialize o número sequencial com zero
+        last_sequence = 0
+
+        # Percorra todos os arquivos encontrados
+        for file in files:
+            # Verifique se o nome do arquivo corresponde ao padrão esperado
+            match = re.search(pattern, file)
+            if match:
+                # Obtenha o número sequencial encontrado no nome do arquivo
+                sequence = int(match.group(1))
+
+                # Atualize o número sequencial máximo, se necessário
+                if sequence > last_sequence:
+                    last_sequence = sequence
+
+        # ------------------------------------------------------------
+
+        nome_arquivo = (
+            "ABS" + abreviacao_empresa + disciplina + sub + seq + "_Rev0" + extension
+        )
 
         if not df_tabela.empty:
             nova_linha = df_tabela.index[-1]
@@ -783,7 +953,6 @@ def criar_projeto():
 
         pasta_default = r"C:\Users\lanch\Desktop\Projeto\3 - Caique"
         nome_projeto_inicial = request.form["nome_projeto"]
-        tipo_projeto = request.form["tipo_projeto"]
         abreviacao_empresa = request.form["abreviacao_empresa"]
         descricao_projeto = request.form["descricao_projeto"]
 
@@ -796,11 +965,9 @@ def criar_projeto():
                 if numero_int > maior_numero:
                     maior_numero = numero_int
         numero_projeto = maior_numero + 1
-        """nome_projeto = (
-            str(numero_projeto) + " - " + abreviacao_empresa + "-ABS-" + tipo_projeto
-        )"""
+        nome_projeto = str(numero_projeto) + " - " + nome_projeto_inicial
 
-        pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto_inicial)
+        pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto)
 
         # adicionar o nome do projeto, a abreviacao e a descricao do projeto
         indice = len(df_projeto)
