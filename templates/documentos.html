@@ -51,7 +51,10 @@
                 <div class="modal-body">
                     <form id="criarArquivoForm" method="POST" action="{{ url_for('criar_arquivo') }}">
                         <div class="form-group row">
-
+                            <div class="col-9">
+                                <label for="titulo">Titulo:</label>
+                                <input type="text" class="form-control" id="titulo" name="titulo">
+                            </div>
                         </div>
                         <div class="col-4">
                             <select class="form-control" id="disc" name="disc">
@@ -88,6 +91,7 @@
     </div>
     </div>
     <input type="hidden" name="projeto" value="{{ projeto }}">
+    <input type="hidden" name="titulo" value="{{ titulo }}">
     <button type="submit" class="btn btn-primary">Enviar</button>
     {% for status in status_list %}
 

@@ -17,15 +17,6 @@ def gerar():
 
     c.execute(
         """
-        CREATE TABLE IF NOT EXISTS usuarios (
-            username TEXT PRIMARY KEY,
-            senha TEXT
-        )
-    """
-    )
-
-    c.execute(
-        """
         CREATE TABLE IF NOT EXISTS log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT,
@@ -48,8 +39,30 @@ def gerar():
             data_revisao TEXT,
             aprovador TEXT,
             data_aprovado TEXT,
-            descricao TEXT
+            descricao TEXT,
             tagfinanceiro TEXT
+        )
+    """
+    )
+
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS dados_projeto (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            projeto TEXT,
+            abreviacao TEXT,
+            descricao TEXT
+        )
+    """
+    )
+
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS dados_arquivo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT,
+            projeto TEXT,
+            titulo TEXT
         )
     """
     )
