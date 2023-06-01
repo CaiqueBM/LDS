@@ -30,12 +30,126 @@
 
     <h1>Documentos de {{ projeto }}</h1>
 
-    {% if gerar_grd == True %}
+
+
+    {% if atualizar == "intermedio" %}
+    <form action="/intermediador" method="post">
+        <input type="hidden" name="projeto" value="{{ projeto }}">
+        <input type="hidden" name="atualizar" value="{{ atualizar }}">
+        <input type="hidden" name="responsavel_status" value="{{ responsavel_status }}">
+        <button type="submit" class="selecionar_arquivos">Selecionar</button>
+
+        {% for status in status_list %}
+        <details>
+            <summary>{{ status }}</summary>
+            <!-- Tabela com todos os projetos que o usuario esta responsavel-->
+            <table class="table table-striped table-documentos">
+                <thead>
+                    <tr>
+                        <th>Selecionar</th>
+                        <th>Nome do arquivo</th>
+                        <th>Data de criação</th>
+                        <th>Status</th>
+                        <th>Responsavel</th>
+                        <th>Data Avaliacao</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    {% for doc in doc if doc[4] == status %}
+                    <tr>
+                        <td><input type="checkbox" name="selecionados" value="{{ doc[0] }}"></td>
+                        <td>{{ doc[1] }}</td>
+                        <td>{{ doc[2] }}</td>
+                        <td>{{ doc[4] }}</td>
+                        <td>{{ doc[5] }}</td>
+                        <td>{{ doc[7] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+        {% endfor %}
+    </form>
+    {% endif %}
+
+    {% if atualizar == "atualizar" %}
+    <form action="/atualizar_status" method="post">
+        <input type="hidden" name="projeto" value="{{ projeto }}">
+        <input type="hidden" name="atualizar" value="{{ atualizar }}">
+
+        {% if responsavel_status == "Em Desenvolvimento" %}
+        <label for="nome_aprovador">Aprovador:</label>
+        <select form-control id="aprovador" name="aprovador">
+            <option value="Andre">Andre</option>
+            <option value="Caique">Caique</option>
+            <option value="Renato">Renato</option>
+            <option value="Richard">Richard</option>
+        </select>
+
+        <button type="submit" class="mudar_status">Para Aprovaçao</button>
+        {% endif %}
+
+        {% if responsavel_status == "Para Avaliacao" %}
+        <label for="nome_responsavel">Responsavel:</label>
+        <select form-control id="nome_responsavel" name="nome_responsavel">
+            <option value="Andre">Andre</option>
+            <option value="Caique">Caique</option>
+            <option value="Renato">Renato</option>
+            <option value="Richard">Richard</option>
+        </select>
+        <button type="submit" class="status_aprovador" value="Reprovado">Reprovado</button>
+        <button type="submit" class="status_aprovador" value="Aprovado">Aprovado</button>
+        {% endif %}
+
+        {% if responsavel_status == "Criado" %}
+        <button type="submit" class="mudar_status">Mudar Status</button>
+        {% endif %}
+
+
+        <table class="table table-striped table-documentos">
+            <thead>
+                <tr>
+                    <th>Nome do arquivo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in doc_selecionado %}
+                <tr>
+                    <td>{{ item[1] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </form>
+    {% endif %}
+
+    {% if atualizar == "renomear" %}
+    <form action="/renomear_pasta" method="post">
+        <input type="hidden" name="projeto" value="{{ projeto }}">
+        <input type="hidden" name="caminho" value="{{ pasta_destino }}">
+
+        <input type="hidden" name="status" value="{{ status }}">
+        <input type="hidden" name="atualizar" value="{{ atualizar }}">
+
+
+        <div class="form-group">
+            <label for="nome_pasta">Novo nome da pasta:</label>
+            <input type="text" class="form-control" id="nome_pasta" name="nome_pasta">
+        </div>
+        <button type="submit" class="btn btn-primary">Renomear Pasta</button>
+    </form>
+    {% endif %}
+
+    {% if atualizar == "gerar_grd" %}
     <form action="/gerar_grd" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="status" value="{{ status }}">
         <input type="hidden" name="data_envio" value="{{ data_envio }}">
         <input type="hidden" name="novo_caminho" value="{{ novo_caminho }}">
+        <input type="hidden" name="atualizar" value="{{ atualizar }}">
+
 
         <div class="form-group">
             <label for="nome_pasta">Revisao:</label>
@@ -65,33 +179,6 @@
             <input id="data" name="data" value="{{ data }}" readonly>
         </div>
         <button type="submit" class="btn btn-primary">Gerar GRD</button>
-    </form>
-    {% endif %}
-
-
-    {% if valor == True %}
-    <!-- Adicione o novo formulário para renomear a pasta -->
-    <form action="/renomear_pasta" method="post">
-        <input type="hidden" name="projeto" value="{{ projeto }}">
-        <input type="hidden" name="status" value="{{ status }}">
-        <input type="hidden" name="caminho" value="{{ pasta_destino }}">
-        <input type="hidden" name="data_envio" value="{{ data_envio }}">
-        <div class="form-group">
-            <label for="nome_pasta">Novo nome da pasta:</label>
-            <input type="text" class="form-control" id="nome_pasta" name="nome_pasta">
-        </div>
-        <button type="submit" class="btn btn-primary">Renomear Pasta</button>
-    </form>
-    {% endif %}
-
-    {% if valor == False %}
-
-    <form action="/atualizar_status" method="post">
-        <input type="hidden" name="projeto" value="{{ projeto }}">
-        <input type="hidden" name="caminho" value="{{ caminho }}">
-        <input type="hidden" name="data_envio" value="{{ data_envio }}">
-        <button type="submit">Mudar Status</button>
-
 
         {% for status in status_list %}
         <details>
@@ -120,17 +207,17 @@
                         <td>{{ doc[7] }}</td>
                     </tr>
                     {% endfor %}
-    </form>
-
-    </tbody>
-    </table>
-
-
-    </details>
-    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+        {% endfor %}
     </form>
     {% endif %}
+
     {% endblock %}
+
+
+
 
 </body>
 

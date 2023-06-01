@@ -32,12 +32,14 @@ df_tabela = pd.DataFrame
 df_arquivo = pd.DataFrame(columns=["nome", "projeto", "titulo"])
 diretorio_raiz = r"C:\Users\lanch\Desktop\Projeto"
 diretorio_default = r"C:\\Users\\lanch\\Desktop\\Default"
-valor = False
+atualizar = "intermedio"
 pasta_destino = ""
-gerar_grd = False
 linha_selecionada = ""
 df_projeto = pd.DataFrame(columns=["projeto", "abreviacao", "descricao"])
 novo_caminho = ""
+control = ""
+responsavel_status = ""
+df_selecionado = pd.DataFrame
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -130,9 +132,11 @@ def user():
 def user_projetos(projeto):
     if "username" in session:
         global df_tabela
-        global valor
         global pasta_destino
-        global gerar_grd
+        global atualizar
+        global control
+        global responsavel_status
+        global df_selecionado
 
         username = session["username"]
         login_time = session["login_time"]
@@ -146,13 +150,27 @@ def user_projetos(projeto):
         )
 
         conn.close()
+
+        if control == "control":
+            atualizar = ""
+        elif control == "atualizar":
+            atualizar = "atualizar"
+        elif control == "renomear":
+            atualizar = "renomear"
+        elif control == "gerar_grd":
+            atualizar = "gerar_grd"
+        else:
+            atualizar = "intermedio"
+
         nome_pasta = False
         doc = [tuple(row) for row in df_tabela.values]
         # obtém a URL da página anterior
         status_list = df_tabela["status"].unique()
 
-        response = make_response(
-            render_template(
+        if not df_selecionado.empty:
+            doc_selecionado = [tuple(row) for row in df_selecionado.values]
+
+            return render_template(
                 "user_projetos.html",
                 username=username,
                 login_time=login_time,
@@ -160,15 +178,24 @@ def user_projetos(projeto):
                 status_list=status_list,
                 doc=doc,
                 nome_pasta=nome_pasta,
-                valor=valor,
                 pasta_destino=pasta_destino,
-                gerar_grd=gerar_grd,
+                atualizar=atualizar,
+                responsavel_status=responsavel_status,
+                doc_selecionado=doc_selecionado,
             )
+
+        return render_template(
+            "user_projetos.html",
+            username=username,
+            login_time=login_time,
+            projeto=projeto,
+            status_list=status_list,
+            doc=doc,
+            nome_pasta=nome_pasta,
+            pasta_destino=pasta_destino,
+            atualizar=atualizar,
+            responsavel_status=responsavel_status,
         )
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-        return response
 
 
 @app.route("/projetos", methods=["GET"])
@@ -280,6 +307,41 @@ def documentos(projeto):
 
 
 # -------------- Atualizar o status do responsavel, gerar GRD ----------------
+@app.route("/intermediador", methods=["POST"])
+def intermediador():
+    if "username" in session:
+        global linha_selecionada
+        global atualizar
+        global control
+        global responsavel_status
+        global df_tabela
+        global df_selecionado
+
+        username = session["username"]
+        projeto = request.form["projeto"]
+        linha_selecionada = request.form.getlist("selecionados")
+        linha_selecionada = list(map(int, linha_selecionada))
+
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM arquivos"
+        df_tabela = pd.read_sql_query(query, conn)
+        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        status_atual = df_selecionado["status"].values.tolist()
+        conn.close()
+
+        responsavel_status = status_atual[0]
+
+        control = "atualizar"
+
+        return redirect(
+            url_for(
+                "user_projetos",
+                projeto=projeto,
+                responsavel_status=responsavel_status,
+                atualizar=atualizar,
+                df_selecionado=df_selecionado,
+            )
+        )
 
 
 @app.route("/atualizar_status", methods=["GET", "POST"])
@@ -287,9 +349,11 @@ def atualizar_status():
     if "username" in session:
         global df_tabela
         global diretorio_raiz
-        global valor
         global pasta_destino
         global linha_selecionada
+        global atualizar
+        global control
+        global responsavel_status
 
         status = [
             "Criado",
@@ -297,12 +361,14 @@ def atualizar_status():
             "Para Avaliacao",
             "Para Entrega",
         ]
+
         username = session["username"]
+        projeto = request.form["projeto"]
+        aprovador = request.form.get("aprovador", None)
+        responsavel = request.form.get("nome_responsavel", None)
+        status_aprovador = request.form.get("status_aprovador", None)
         now = datetime.datetime.now()
         data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
-        projeto = request.form["projeto"]
-        linha_selecionada = request.form.getlist("selecionados")
-        linha_selecionada = list(map(int, linha_selecionada))
         tamanho = len(linha_selecionada)
 
         conn = sqlite3.connect("database.db")
@@ -315,21 +381,20 @@ def atualizar_status():
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
-        # Precisa de uma logica para verificar o status atual de cada arquivo marcado na checkbox
         pasta_destino = ""
 
-        """Criar uma lista para mandar todos os arquivos ja enviados e seus status, para
-        testar e ter um status para gerar o modal """
         if tamanho <= 0:
+            control = ""
             return redirect(
                 url_for(
                     "user_projetos",
                     projeto=projeto,
-                    valor=valor,
+                    atualizar=atualizar,
                     pasta_destino=pasta_destino,
                 )
             )
         if status_atual[0] == "Criado":
+            control = ""
             if caminho_projeto is not None:
                 projeto_arquivo = re.search(
                     r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
@@ -347,10 +412,10 @@ def atualizar_status():
                 query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
                 c.execute(query)
                 conn.commit()
-                # df_newstatus.loc[len(df_newstatus)] = [novo_caminho, novo_status]
 
             conn.close()
         elif status_atual[0] == "Em Desenvolvimento":
+            control = ""
             if caminho_projeto is not None:
                 projeto_arquivo = re.search(
                     r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
@@ -370,60 +435,88 @@ def atualizar_status():
 
                 # Atualiza o status do arquivo na base de dados
                 novo_status = status[(status.index(status_atual[i]) + 1) % len(status)]
-                query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}', aprovador = '{aprovador}' WHERE id = '{id_documentos[i]}' """
                 c.execute(query)
                 conn.commit()
                 shutil.move(caminho_projeto[i], pasta_destino)
 
             conn.close()
         elif status_atual[0] == "Para Avaliacao":
-            valor = True
-            if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+            if status_aprovador == "Reprovado":
+                control = ""
+
+                if caminho_projeto is not None:
+                    projeto_arquivo = re.search(
+                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                    )
+                    projeto_arquivo = projeto_arquivo.group(0)
+
+                pasta_destino = os.path.join(
+                    diretorio_raiz,
+                    projeto_arquivo,
+                    "Arquivos do Projeto",
+                    "Area de Trabalho",
+                    responsavel,
                 )
-                projeto_arquivo = projeto_arquivo.group(0)
 
-            # Cria uma pasta com nome aleatorio
-            caminho_atual = os.path.join(
-                diretorio_raiz,
-                projeto_arquivo,
-                "Arquivos do Projeto",
-                "Para Entrega",
-                "novapasta",
-            )
+                # Itera sobre os resultados e move cada arquivo para a pasta de destino
+                conn = sqlite3.connect("database.db")
+                c = conn.cursor()
+                for i in range(tamanho):
+                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
+                    novo_caminho = os.path.join(pasta_destino, nome_arq[i])
 
-            os.makedirs(caminho_atual, exist_ok=True)
-            pasta_destino = os.path.join(
-                diretorio_raiz,
-                projeto_arquivo,
-                "Arquivos do Projeto",
-                "Para Entrega",
-                "novapasta",
-            )
+                    # Atualiza o status do arquivo na base de dados
+                    novo_status = status[
+                        (status.index(status_atual[i]) + 1) % len(status)
+                    ]
+                    query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = 'Em Desenvolvimento', responsavel = '{responsavel}' WHERE id = '{id_documentos[i]}' """
+                    c.execute(query)
+                    conn.commit()
 
-            # Itera sobre os resultados e move cada arquivo para a pasta de destino
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            for i in range(tamanho):
-                nome_do_arquivo = os.path.basename(caminho_projeto[i])
-                novo_caminho = os.path.join(pasta_destino, nome_arq[i])
+                    shutil.move(caminho_projeto[i], pasta_destino)
+            elif status_aprovador == "Aprovado":
+                control = "renomear"
 
-                # Atualiza o status do arquivo na base de dados
-                novo_status = status[(status.index(status_atual[i]) + 1) % len(status)]
-                query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
-                c.execute(query)
-                conn.commit()
+                if caminho_projeto is not None:
+                    projeto_arquivo = re.search(
+                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                    )
+                    projeto_arquivo = projeto_arquivo.group(0)
 
-                shutil.move(caminho_projeto[i], pasta_destino)
+                pasta_destino = os.path.join(
+                    diretorio_raiz,
+                    projeto_arquivo,
+                    "Arquivos do Projeto",
+                    "Para Entrega",
+                    "novapasta",
+                )
+                os.makedirs(pasta_destino, exist_ok=True)
 
-            conn.close()
+                # Itera sobre os resultados e move cada arquivo para a pasta de destino
+                conn = sqlite3.connect("database.db")
+                c = conn.cursor()
+                for i in range(tamanho):
+                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
+                    novo_caminho = os.path.join(pasta_destino, nome_arq[i])
+
+                    # Atualiza o status do arquivo na base de dados
+                    novo_status = status[
+                        (status.index(status_atual[i]) + 1) % len(status)
+                    ]
+                    query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                    c.execute(query)
+                    conn.commit()
+
+                    shutil.move(caminho_projeto[i], pasta_destino)
+
+                conn.close()
 
         return redirect(
             url_for(
                 "user_projetos",
                 projeto=projeto,
-                valor=valor,
+                atualizar=atualizar,
                 pasta_destino=pasta_destino,
             )
         )
@@ -433,12 +526,12 @@ def atualizar_status():
 def renomear_pasta():
     if "username" in session:
         global df_tabela
-        global valor
         global pasta_destino
         global gerar_grd
         global novo_caminho
+        global atualizar
+        global control
 
-        valor = False
         projeto = request.form["projeto"]
         nome_pasta = request.form["nome_pasta"]
         caminho_projeto = request.form["caminho"]
@@ -487,13 +580,13 @@ def renomear_pasta():
 
         conn.close()
 
-        gerar_grd = True
+        control = "gerar_grd"
 
         return redirect(
             url_for(
                 "user_projetos",
                 projeto=projeto,
-                valor=valor,
+                atualizar=atualizar,
                 gerar_grd=gerar_grd,
                 data_envio=data_envio,
             )
@@ -510,6 +603,9 @@ def gerar_grd():
         global novo_caminho
         global df_projeto
         global df_arquivo
+        global atualizar
+        global control
+        global df_tabela
 
         nomes = {"Andre": "ABS", "Caique": "CBM", "Renato": "RBSM", "Richard": "RRO"}
         tipos = {
@@ -939,14 +1035,12 @@ def gerar_grd():
             pasta_GRD_recente = None
             pasta_GRD_anterior = None
 
-        gerar_grd = False
+        control = ""
 
         return redirect(
             url_for(
                 "user_projetos",
                 projeto=projeto,
-                valor=valor,
-                gerar_grd=gerar_grd,
             )
         )
 
@@ -1183,7 +1277,6 @@ def upload_files():
             url_for(
                 "user_projetos",
                 projeto=projeto,
-                valor=valor,
             )
         )
 
