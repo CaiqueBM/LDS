@@ -40,6 +40,8 @@ novo_caminho = ""
 control = ""
 responsavel_status = ""
 df_selecionado = pd.DataFrame
+aprovado_exibido = False
+mudar_status = ""
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -103,7 +105,7 @@ def user():
         login_time = session["login_time"]
         conn = sqlite3.connect("database.db")
         df_tabela = pd.read_sql_query(
-            f"SELECT DISTINCT projeto FROM arquivos WHERE responsavel = '{username}'",
+            f"SELECT DISTINCT projeto FROM arquivos WHERE (responsavel = '{username}' OR aprovador = '{username}')",
             conn,
         )
 
@@ -137,6 +139,8 @@ def user_projetos(projeto):
         global control
         global responsavel_status
         global df_selecionado
+        global aprovado_exibido
+        global mudar_status
 
         username = session["username"]
         login_time = session["login_time"]
@@ -144,21 +148,17 @@ def user_projetos(projeto):
         conn = sqlite3.connect("database.db")
 
         df_tabela = pd.read_sql_query(
-            f"SELECT * FROM arquivos WHERE projeto=? AND responsavel=?",
+            f"SELECT * FROM arquivos WHERE projeto=? AND (responsavel=? OR aprovador=?)",
             conn,
-            params=(projeto, username),
+            params=(projeto, username, username),
         )
 
         conn.close()
 
-        if control == "control":
-            atualizar = ""
-        elif control == "atualizar":
+        if control == "atualizar":
             atualizar = "atualizar"
         elif control == "renomear":
             atualizar = "renomear"
-        elif control == "gerar_grd":
-            atualizar = "gerar_grd"
         else:
             atualizar = "intermedio"
 
@@ -169,6 +169,12 @@ def user_projetos(projeto):
 
         if not df_selecionado.empty:
             doc_selecionado = [tuple(row) for row in df_selecionado.values]
+            for item in doc_selecionado:
+                if item[9] is not None and username in item[9]:
+                    aprovado_exibido = False
+                    break
+                else:
+                    aprovado_exibido = True
 
             return render_template(
                 "user_projetos.html",
@@ -182,6 +188,7 @@ def user_projetos(projeto):
                 atualizar=atualizar,
                 responsavel_status=responsavel_status,
                 doc_selecionado=doc_selecionado,
+                aprovado_exibido=aprovado_exibido,
             )
 
         return render_template(
@@ -316,6 +323,7 @@ def intermediador():
         global responsavel_status
         global df_tabela
         global df_selecionado
+        global mudar_status
 
         username = session["username"]
         projeto = request.form["projeto"]
@@ -354,12 +362,14 @@ def atualizar_status():
         global atualizar
         global control
         global responsavel_status
+        global mudar_status
 
         status = [
             "Criado",
             "Em Desenvolvimento",
             "Para Avaliacao",
             "Para Entrega",
+            "Entregue",
         ]
 
         username = session["username"]
@@ -367,6 +377,7 @@ def atualizar_status():
         aprovador = request.form.get("aprovador", None)
         responsavel = request.form.get("nome_responsavel", None)
         status_aprovador = request.form.get("status_aprovador", None)
+        status_atualizar = request.form.get("status_atualizar", None)
         now = datetime.datetime.now()
         data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
         tamanho = len(linha_selecionada)
@@ -385,6 +396,7 @@ def atualizar_status():
 
         if tamanho <= 0:
             control = ""
+            linha_selecionada = []
             return redirect(
                 url_for(
                     "user_projetos",
@@ -393,58 +405,44 @@ def atualizar_status():
                     pasta_destino=pasta_destino,
                 )
             )
-        if status_atual[0] == "Criado":
-            control = ""
-            if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                )
-                projeto_arquivo = projeto_arquivo.group(0)
 
-            # Itera sobre os resultados e move cada arquivo para a pasta de destino
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            for i in range(tamanho):
-                nome_do_arquivo = os.path.basename(caminho_projeto[i])
-
-                # Atualiza o status do arquivo na base de dados
-                novo_status = status[(status.index(status_atual[i]) + 1) % len(status)]
-                query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
-                c.execute(query)
-                conn.commit()
-
-            conn.close()
-        elif status_atual[0] == "Em Desenvolvimento":
-            control = ""
-            if caminho_projeto is not None:
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                )
-                projeto_arquivo = projeto_arquivo.group(0)
-
-            pasta_destino = os.path.join(
-                diretorio_raiz, projeto_arquivo, "Arquivos do Projeto", "Para Avaliacao"
-            )
-
-            # Itera sobre os resultados e move cada arquivo para a pasta de destino
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            for i in range(tamanho):
-                nome_do_arquivo = os.path.basename(caminho_projeto[i])
-                novo_caminho = os.path.join(pasta_destino, nome_arq[i])
-
-                # Atualiza o status do arquivo na base de dados
-                novo_status = status[(status.index(status_atual[i]) + 1) % len(status)]
-                query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}', aprovador = '{aprovador}' WHERE id = '{id_documentos[i]}' """
-                c.execute(query)
-                conn.commit()
-                shutil.move(caminho_projeto[i], pasta_destino)
-
-            conn.close()
-        elif status_atual[0] == "Para Avaliacao":
-            if status_aprovador == "Reprovado":
+        if (
+            status_atualizar == "atualizar"
+            or status_aprovador == "aprovado"
+            or status_aprovador == "reprovado"
+        ):
+            if status_atual[0] == "Criado":
                 control = ""
+                linha_selecionada = []
 
+                if caminho_projeto is not None:
+                    projeto_arquivo = re.search(
+                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                    )
+                    projeto_arquivo = projeto_arquivo.group(0)
+
+                # Itera sobre os resultados e move cada arquivo para a pasta de destino
+                conn = sqlite3.connect("database.db")
+                c = conn.cursor()
+                for i in range(tamanho):
+                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
+
+                    # Atualiza o status do arquivo na base de dados
+                    novo_status = status[
+                        (status.index(status_atual[i]) + 1) % len(status)
+                    ]
+                    query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                    c.execute(query)
+                    conn.commit()
+
+                conn.close()
+                linha_selecionada = []
+                df_tabela = df_tabela.dropna()
+                df_selecionado = df_selecionado.dropna()
+
+            elif status_atual[0] == "Em Desenvolvimento":
+                control = ""
+                linha_selecionada = []
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
                         r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
@@ -455,8 +453,7 @@ def atualizar_status():
                     diretorio_raiz,
                     projeto_arquivo,
                     "Arquivos do Projeto",
-                    "Area de Trabalho",
-                    responsavel,
+                    "Para Avaliacao",
                 )
 
                 # Itera sobre os resultados e move cada arquivo para a pasta de destino
@@ -470,47 +467,96 @@ def atualizar_status():
                     novo_status = status[
                         (status.index(status_atual[i]) + 1) % len(status)
                     ]
-                    query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = 'Em Desenvolvimento', responsavel = '{responsavel}' WHERE id = '{id_documentos[i]}' """
+                    query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}', aprovador = '{aprovador}' WHERE id = '{id_documentos[i]}' """
                     c.execute(query)
                     conn.commit()
-
-                    shutil.move(caminho_projeto[i], pasta_destino)
-            elif status_aprovador == "Aprovado":
-                control = "renomear"
-
-                if caminho_projeto is not None:
-                    projeto_arquivo = re.search(
-                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                    )
-                    projeto_arquivo = projeto_arquivo.group(0)
-
-                pasta_destino = os.path.join(
-                    diretorio_raiz,
-                    projeto_arquivo,
-                    "Arquivos do Projeto",
-                    "Para Entrega",
-                    "novapasta",
-                )
-                os.makedirs(pasta_destino, exist_ok=True)
-
-                # Itera sobre os resultados e move cada arquivo para a pasta de destino
-                conn = sqlite3.connect("database.db")
-                c = conn.cursor()
-                for i in range(tamanho):
-                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
-                    novo_caminho = os.path.join(pasta_destino, nome_arq[i])
-
-                    # Atualiza o status do arquivo na base de dados
-                    novo_status = status[
-                        (status.index(status_atual[i]) + 1) % len(status)
-                    ]
-                    query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
-                    c.execute(query)
-                    conn.commit()
-
                     shutil.move(caminho_projeto[i], pasta_destino)
 
                 conn.close()
+                linha_selecionada = []
+                df_tabela = df_tabela.dropna()
+            elif status_atual[0] == "Para Avaliacao":
+                if status_aprovador == "reprovado":
+                    control = ""
+                    linha_selecionada = []
+
+                    if caminho_projeto is not None:
+                        projeto_arquivo = re.search(
+                            r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        )
+                        projeto_arquivo = projeto_arquivo.group(0)
+
+                    pasta_destino = os.path.join(
+                        diretorio_raiz,
+                        projeto_arquivo,
+                        "Arquivos do Projeto",
+                        "Area de Trabalho",
+                        responsavel,
+                    )
+
+                    # Itera sobre os resultados e move cada arquivo para a pasta de destino
+                    conn = sqlite3.connect("database.db")
+                    c = conn.cursor()
+                    for i in range(tamanho):
+                        nome_do_arquivo = os.path.basename(caminho_projeto[i])
+                        novo_caminho = os.path.join(pasta_destino, nome_arq[i])
+
+                        # Atualiza o status do arquivo na base de dados
+                        novo_status = status[
+                            (status.index(status_atual[i]) + 1) % len(status)
+                        ]
+                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = 'Em Desenvolvimento', responsavel = '{responsavel}', aprovador = '' WHERE id = '{id_documentos[i]}' """
+                        c.execute(query)
+                        conn.commit()
+
+                        shutil.move(caminho_projeto[i], pasta_destino)
+
+                    linha_selecionada = []
+                    df_tabela = df_tabela.dropna()
+                elif status_aprovador == "aprovado":
+                    control = "renomear"
+
+                    if caminho_projeto is not None:
+                        projeto_arquivo = re.search(
+                            r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        )
+                        projeto_arquivo = projeto_arquivo.group(0)
+
+                    pasta_destino = os.path.join(
+                        diretorio_raiz,
+                        projeto_arquivo,
+                        "Arquivos do Projeto",
+                        "Para Entrega",
+                        "novapasta",
+                    )
+                    os.makedirs(pasta_destino, exist_ok=True)
+
+                    # Itera sobre os resultados e move cada arquivo para a pasta de destino
+                    conn = sqlite3.connect("database.db")
+                    c = conn.cursor()
+                    for i in range(tamanho):
+                        nome_do_arquivo = os.path.basename(caminho_projeto[i])
+                        novo_caminho = os.path.join(pasta_destino, nome_arq[i])
+
+                        # Atualiza o status do arquivo na base de dados
+                        novo_status = status[
+                            (status.index(status_atual[i]) + 1) % len(status)
+                        ]
+                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                        c.execute(query)
+                        conn.commit()
+
+                        shutil.move(caminho_projeto[i], pasta_destino)
+
+                    conn.close()
+                    linha_selecionada = []
+                    df_tabela = df_tabela.dropna()
+
+        elif status_atualizar == "cancelar":
+            linha_selecionada = []
+            df_tabela = df_tabela.dropna()
+            df_selecionado = df_selecionado.dropna()
+            control = ""
 
         return redirect(
             url_for(
@@ -527,10 +573,10 @@ def renomear_pasta():
     if "username" in session:
         global df_tabela
         global pasta_destino
-        global gerar_grd
         global novo_caminho
         global atualizar
         global control
+        global mudar_status
 
         projeto = request.form["projeto"]
         nome_pasta = request.form["nome_pasta"]
@@ -580,14 +626,13 @@ def renomear_pasta():
 
         conn.close()
 
-        control = "gerar_grd"
+        control = ""
 
         return redirect(
             url_for(
                 "user_projetos",
                 projeto=projeto,
                 atualizar=atualizar,
-                gerar_grd=gerar_grd,
                 data_envio=data_envio,
             )
         )
@@ -597,7 +642,6 @@ def renomear_pasta():
 def gerar_grd():
     if "username" in session:
         global diretorio_raiz
-        global gerar_grd
         global pasta_destino
         global linha_selecionada
         global novo_caminho
@@ -606,6 +650,7 @@ def gerar_grd():
         global atualizar
         global control
         global df_tabela
+        global mudar_status
 
         nomes = {"Andre": "ABS", "Caique": "CBM", "Renato": "RBSM", "Richard": "RRO"}
         tipos = {
@@ -724,7 +769,7 @@ def gerar_grd():
 
             nome_ld = "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R0" + ".xlsx"
             planilha.range("J6").value = nome_ld  # nome da lista de documentos
-            nome_ld = os.path.join(caminho_padrao, nome_ld)
+            nome_ld = os.path.join(novo_caminho, nome_ld)
 
             # workbook.save(nome_ld)
 
@@ -819,7 +864,7 @@ def gerar_grd():
             planilha = workbook.sheets["GRD"]
 
             nome_grd = "GRD-ABS-" + abreviacao_empresa + "-001" + ".xlsx"
-            nome_grd = os.path.join(caminho_padrao, nome_grd)
+            nome_grd = os.path.join(novo_caminho, nome_grd)
 
             shape_empresa = planilha.shapes["nome_empresa3"]
             shape_empresa.text = str(projeto_atual)  # projeto
