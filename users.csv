@@ -1,6 +1,5 @@
-﻿username;password
-Caique;123
-Andre;123
-Marcelo;123
-Renato;123
-Richard;123
+﻿username;password;abreviacao
+Andre;123;ABS
+Caique;123;CBM
+Renato;123;RBSM
+Richard;123;RR

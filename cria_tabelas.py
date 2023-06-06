@@ -39,6 +39,7 @@ def gerar():
             data_revisao TEXT,
             aprovador TEXT,
             data_aprovado TEXT,
+            data_entregue TEXT,
             descricao TEXT,
             tagfinanceiro TEXT
         )
@@ -67,6 +68,8 @@ def gerar():
     """
     )
 
+    padrao = r"Arquivos do Projeto\\([^\\]+)"
+
     # Percorre recursivamente todos os diretórios a partir do diretório raiz
     for raiz, _, arquivos in os.walk(diretorio):
         for nome_arquivo in arquivos:
@@ -75,22 +78,58 @@ def gerar():
             caminho_completo = os.path.join(raiz, nome_arquivo)
             projeto = re.search(r"(?<=\\)[0-9]+ - (.+?)(?=\\)", caminho_completo)
             projeto_arquivo = projeto.group(1) if projeto else None
-
             # Obtenha a data de criação do arquivo
             data_criacao = os.path.getctime(caminho_completo)
             data_criacao = datetime.datetime.fromtimestamp(data_criacao)
 
-            # Para cada arquivo, insira um registro na tabela do banco de dados
-            c.execute(
-                "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado) VALUES (?, ?, ?, ?)",
-                (
-                    nome_arquivo,
-                    caminho_completo,
-                    projeto_arquivo,
-                    data_criacao.strftime("%Y-%m-%d %H:%M:%S"),
-                ),
-            )
-            conn.commit()
+            resultado = re.search(padrao, caminho_completo)
+            if resultado:
+                diretorio_status = resultado.group(1)
+
+            if diretorio_status == "Area de Trabalho":
+                padrao = r"Area de Trabalho\\([^\\]+)"
+
+                resultado = re.search(padrao, caminho_completo)
+                if resultado:
+                    diretorio_verificado = resultado.group(1)
+                    responsavel = diretorio_verificado
+
+                c.execute(
+                    "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        nome_arquivo,
+                        caminho_completo,
+                        projeto_arquivo,
+                        data_criacao.strftime("%Y-%m-%d %H:%M:%S"),
+                        status,
+                        responsavel,
+                    ),
+                )
+                conn.commit()
+
+            elif diretorio_status == "Para Avaliacao":
+                status = "Para Avaliacao"
+
+            elif diretorio_status == "Para Entrega":
+                status = "Para Entrega"
+
+            elif diretorio_status == "Para Revisao":
+                status = "Para Revisao"
+
+            if diretorio_status is not "Area de Trabalho":
+                # Para cada arquivo, insira um registro na tabela do banco de dados
+                c.execute(
+                    "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        nome_arquivo,
+                        caminho_completo,
+                        projeto_arquivo,
+                        data_criacao.strftime("%Y-%m-%d %H:%M:%S"),
+                        status,
+                        responsavel,
+                    ),
+                )
+                conn.commit()
 
     # Fecha a conexão com o banco de dados
     conn.close()

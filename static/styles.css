@@ -335,3 +335,24 @@ summary {
 .upload-button:active {
     background-color: #3c903c;
 }
+
+.password-toggle {
+    position: relative;
+}
+
+.password-toggle input[type="password"] {
+    padding-right: 40px;
+}
+
+.password-toggle .toggle-btn {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+#mostrarSenhaCheckbox {
+    transform: translateY(-50%);
+    cursor: pointer;
+}

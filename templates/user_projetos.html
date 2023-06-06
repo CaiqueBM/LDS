@@ -140,6 +140,28 @@
 
         {% endif %}
 
+        {% if responsavel_status == "Para Entrega" %}
+        <button type="submit" class="mudar_status" name="status_atualizar" value="gerar_grd">Gerar GRD</button>
+        <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
+
+        <input type="hidden" name="data_atualizada" value="{{ data_atualizada }}">
+
+
+        <table class="table table-striped table-documentos">
+            <thead>
+                <tr>
+                    <th>Nome do arquivo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in doc_selecionado %}
+                <tr>
+                    <td>{{ item[1] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif%}
 
         {% if responsavel_status == "Criado" %}
         <button type="submit" class="mudar_status" name="status_atualizar" value="atualizar">Mudar Status</button>
@@ -190,6 +212,11 @@
         <input type="hidden" name="novo_caminho" value="{{ novo_caminho }}">
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
 
+        <label for="nome_pasta">Enviado por:</label>
+        <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly="readonly">
+        <label for="nome_pasta">Data envio:</label>
+        <input id="data" name="data" value="{{ data_atualizada }}" readonly="readonly">
+
         <div class="form-group">
             <label for="nome_pasta">Revisao:</label>
             <input type="text" class="form-control" id="revisao" name="revisao">
@@ -206,50 +233,19 @@
             </select>
             <label for="nome_pasta">Descriçao:</label>
             <input type="text" class="form-control" id="descricao" name="descricao">
-            <label for="nome_pasta">Enviado por:</label>
-            <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly>
+
             <label for="nome_pasta">Verificado por:</label>
             <input type="text" class="form-control" id="verificado" name="verificado">
             <label for="nome_pasta">Verificado por:</label>
             <input type="text" class="form-control" id="aprovado" name="aprovado">
             <label for="nome_pasta">Autorizado por:</label>
             <input type="text" class="form-control" id="autorizado" name="autorizado">
-            <label for="nome_pasta">Data envio:</label>
-            <input id="data" name="data" value="{{ data }}" readonly>
+
         </div>
         <button type="submit" class="btn btn-primary">Gerar GRD</button>
+        <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
 
-        {% for status in status_list %}
-        <details>
-            <summary>{{ status }}</summary>
-            <!-- Tabela com todos os projetos que o usuario esta responsavel-->
-            <table class="table table-striped table-documentos">
-                <thead>
-                    <tr>
-                        <th>Selecionar</th>
-                        <th>Nome do arquivo</th>
-                        <th>Data de criação</th>
-                        <th>Status</th>
-                        <th>Responsavel</th>
-                        <th>Data Avaliacao</th>
-                    </tr>
-                </thead>
-                <tbody>
 
-                    {% for doc in doc if doc[4] == status %}
-                    <tr>
-                        <td><input type="checkbox" name="selecionados" value="{{ doc[0] }}"></td>
-                        <td>{{ doc[1] }}</td>
-                        <td>{{ doc[2] }}</td>
-                        <td>{{ doc[4] }}</td>
-                        <td>{{ doc[5] }}</td>
-                        <td>{{ doc[7] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </details>
-        {% endfor %}
     </form>
     {% endif %}
 

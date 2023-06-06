@@ -22,7 +22,7 @@ import re
 import shutil
 import difflib
 import xlwings as xw
-import ast
+
 
 app = Flask(__name__)
 
@@ -44,7 +44,6 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -544,8 +543,9 @@ def atualizar_status():
                         projeto_arquivo,
                         "Arquivos do Projeto",
                         "Para Entrega",
-                        "Aprovados",
+                        "novapasta",
                     )
+                    os.makedirs(pasta_destino, exist_ok=True)
 
                     # Itera sobre os resultados e move cada arquivo para a pasta de destino
                     conn = sqlite3.connect("database.db")
@@ -567,8 +567,10 @@ def atualizar_status():
                     conn.close()
                     linha_selecionada = []
                     df_tabela = df_tabela.dropna()
+            elif status_atual[0] == "Para Entrega":
+                print("0")
         elif status_atualizar == "gerar_grd":
-            control = "renomear"
+            control = "gerar_grd"
 
         elif status_atualizar == "cancelar":
             linha_selecionada = []
@@ -597,34 +599,10 @@ def renomear_pasta():
         global atualizar
         global control
         global mudar_status
-        global linha_selecionada
-        global df_selecionado
 
         projeto = request.form["projeto"]
         nome_pasta = request.form["nome_pasta"]
-        tamanho = len(linha_selecionada)
-
-        conn = sqlite3.connect("database.db")
-        query = "SELECT * FROM arquivos"
-        df_tabela = pd.read_sql_query(query, conn)
-        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
-        conn.close()
-
-        # -------------------- Buscar nome do projeto na pasta --------------------
-        folders = [
-            f
-            for f in os.listdir(diretorio_raiz)
-            if os.path.isdir(os.path.join(diretorio_raiz, f))
-        ]
-        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
-        pattern = re.compile(rf".*{re.escape(projeto)}.*", re.IGNORECASE)
-        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        projeto = [f for f in folders if re.match(pattern, f)]
-
-        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
-        caminho_verificado = os.path.join(
-            caminho_projeto, "Arquivos do Projeto", "Para Entrega"
-        )
+        caminho_projeto = request.form["caminho"]
 
         now = datetime.datetime.now()
         data_envio = now.strftime("%d/%m/%Y")
@@ -642,7 +620,7 @@ def renomear_pasta():
             projeto_arquivo,
             "Arquivos do Projeto",
             "Para Entrega",
-            "Aprovados",
+            "novapasta",
         )
 
         novo_caminho = os.path.join(
@@ -653,27 +631,24 @@ def renomear_pasta():
             nome_pasta,
         )
 
-        os.makedirs(novo_caminho, exist_ok=True)
-        # shutil.move(caminho_atual, novo_caminho)
-        # os.rename(caminho_atual, novo_caminho)
+        os.rename(caminho_atual, novo_caminho)
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
 
-        for index, row in df_selecionado.iterrows():
+        for index, row in df_renomear.iterrows():
             nome_do_arquivo = os.path.basename(row["caminho"])
             caminho_arq = os.path.join(caminho_atual, nome_do_arquivo)
 
-            shutil.move(caminho_arq, novo_caminho)
-
             if row["caminho"] == caminho_arq:
                 caminho_arq = os.path.join(novo_caminho, nome_do_arquivo)
-                query = f"""UPDATE arquivos SET caminho = '{caminho_arq}', status = 'Entregue', data_entregue = '{data_atualizada}' WHERE id = {row["id"]}"""
+                query = f"""UPDATE arquivos SET caminho = '{caminho_arq}' WHERE id = {row["id"]}"""
                 c.execute(query)
                 conn.commit()
+
         conn.close()
 
-        control = "gerar_grd"
+        control = ""
 
         return redirect(
             url_for(
@@ -699,7 +674,6 @@ def gerar_grd():
         global control
         global df_tabela
         global mudar_status
-        global caminho_padrao
 
         tipos = {
             "A": "PRELIMINAR",
@@ -720,12 +694,17 @@ def gerar_grd():
         autorizado = request.form["autorizado"]
 
         # -------------------- Buscar nome do projeto na pasta --------------------
-        try:
-            projeto = ast.literal_eval(projeto_atual)[0]
-        except ValueError:
-            projeto = projeto_atual
+        folders = [
+            f
+            for f in os.listdir(diretorio_raiz)
+            if os.path.isdir(os.path.join(diretorio_raiz, f))
+        ]
+        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
+        pattern = re.compile(rf".*{re.escape(projeto_atual)}.*", re.IGNORECASE)
+        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
+        projeto = [f for f in folders if re.match(pattern, f)]
 
-        caminho_projeto = os.path.join(diretorio_raiz, projeto)
+        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
@@ -734,16 +713,15 @@ def gerar_grd():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
-        result_projeto = df_projeto[df_projeto["projeto"] == projeto]
+        result_projeto = df_projeto[df_projeto["projeto"] == projeto[0]]
         abreviacao_empresa = result_projeto["abreviacao"].iloc[0]
         descricao_projeto = result_projeto["descricao"].iloc[0]
 
-        # ------------------- CAMINHOS PADROES -------------------------
-
-        caminho_ld_padrao = os.path.join(caminho_padrao, "LD_padrao.xlsx")
-        caminho_grd_padrao = os.path.join(caminho_padrao, "GRD_padrao.xlsx")
-        # caminho_ld_padrao = r"C:\Users\lanch\Desktop\modeloGRD\LD_padrao.xlsx"
-        # caminho_grd_padrao = r"C:\Users\lanch\Desktop\modeloGRD\GRD_padrao.xlsx"
+        # ------------------- LISTA DE DOCUMENTOS -------------------------
+        # Fazer uma copia da GRD Padrao para a pasta a ser entregue ()
+        caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
+        caminho_ld_padrao = r"C:\Users\lanch\Desktop\modeloGRD\LD_padrao.xlsx"
+        caminho_grd_padrao = r"C:\Users\lanch\Desktop\modeloGRD\GRD_padrao.xlsx"
 
         pastas = []
         pasta_GRD_recente = None
@@ -758,10 +736,10 @@ def gerar_grd():
                     caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
                     data_criacao = os.path.getctime(caminho_pasta)
                     # Verifica se é a pasta mais recente
-                    if re.search(r"GRD 01", subdiretorio):
-                        pasta_GRD_anterior = None
-                        break
-                    else:
+                    if (
+                        data_criacao > ultima_data_criacao
+                        and caminho_pasta == novo_caminho
+                    ):
                         pasta_GRD_anterior = pasta_GRD_recente
                         pasta_GRD_recente = caminho_pasta
 
@@ -775,9 +753,9 @@ def gerar_grd():
             planilha = workbook.sheets["F. Rosto"]
 
             # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto  # projeto
+            planilha.range("J1").value = projeto_atual  # projeto
             shape_empresa = planilha.shapes["nome_empresa1"]
-            shape_empresa.text = projeto  # projeto
+            shape_empresa.text = projeto_atual  # projeto
             # Descriçao do projeto
             planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
@@ -808,9 +786,9 @@ def gerar_grd():
             data_envio = now.strftime("%d/%m/%Y")
             planilha.range("N" + str(X)).value = data_envio  # data
 
-            nome_arq_ld = "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R0" + ".xlsx"
-            planilha.range("J6").value = nome_arq_ld  # nome da lista de documentos
-            nome_ld = os.path.join(novo_caminho, nome_arq_ld)
+            nome_ld = "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R0" + ".xlsx"
+            planilha.range("J6").value = nome_ld  # nome da lista de documentos
+            nome_ld = os.path.join(novo_caminho, nome_ld)
 
             # workbook.save(nome_ld)
 
@@ -818,7 +796,7 @@ def gerar_grd():
             planilha = workbook.sheets["Lista"]
 
             shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto  # projeto
+            shape_empresa.text = projeto_atual  # projeto
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -915,9 +893,7 @@ def gerar_grd():
 
             X = 36
             planilha.range("A" + str(X)).value = "01"  # primeiro elemento
-            planilha.range(
-                "H" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
+            planilha.range("H" + str(X)).value = nome_ld  # nome da lista de documentos
             planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
             planilha.range("O" + str(X)).value = "0"  # Revisao
             planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
@@ -960,7 +936,6 @@ def gerar_grd():
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
-
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
 
@@ -1003,7 +978,11 @@ def gerar_grd():
             planilha.range("D" + str(X)).value = descricao  # descricao_projeto
 
             # Feito por:
-            planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
+            if username in nomes:
+                abreviacao = nomes[username]
+                planilha.range(
+                    "J" + str(X)
+                ).value = abreviacao  # abreviacao do responsavel
 
             # Verificado
             planilha.range("K" + str(X)).value = verificado  # quem verificou
@@ -1062,52 +1041,53 @@ def gerar_grd():
                         )  # Proxima linha em branco, adicionar os parametros
 
             for i, nome in nome_arq:
-                planilha.range("B" + str(X)).value = nomes_arquivos[i]
-                planilha.range("C" + str(X)).value = titulo[i]
-                resultado = re.search(padrao, nomes_arquivos[i])
-                if resultado:
-                    revisao = resultado.group(0)
-                    planilha.range("D" + str(X)).value = revisao
-                expressoes = [
-                    "LC",
-                    "LD",
-                    "LE",
-                    "LI",
-                    "LM",
-                    "PLT",
-                    "ET",
-                    "SE",
-                    "ILU",
-                    "UNF",
-                    "SPDA",
-                    "TRIF",
-                    "REDE",
-                    "ARQR",
-                    "DIAG",
-                ]
-                padrao = r"\b(?:{})\b".format("|".join(expressoes))
-                match = re.search(padrao, nome_arq)
-                if match:
-                    tipo_expressao = match.group(0)
-                    # novo_nome = nome_arq.replace(expressao_encontrada, "")
-                planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("F" + str(X)).value = "1"
-                planilha.range("K" + str(X)).value = "100"
+                if nome == nomes:
+                    planilha.range("B" + str(X)).value = nomes_arquivos[i]
+                    planilha.range("C" + str(X)).value = titulo[i]
+                    resultado = re.search(padrao, nomes_arquivos[i])
+                    if resultado:
+                        revisao = resultado.group(0)
+                        planilha.range("D" + str(X)).value = revisao
+                    expressoes = [
+                        "LC",
+                        "LD",
+                        "LE",
+                        "LI",
+                        "LM",
+                        "PLT",
+                        "ET",
+                        "SE",
+                        "ILU",
+                        "UNF",
+                        "SPDA",
+                        "TRIF",
+                        "REDE",
+                        "ARQR",
+                        "DIAG",
+                    ]
+                    padrao = r"\b(?:{})\b".format("|".join(expressoes))
+                    match = re.search(padrao, nome_arq)
+                    if match:
+                        tipo_expressao = match.group(0)
+                        # novo_nome = nome_arq.replace(expressao_encontrada, "")
+                    planilha.range("I" + str(X)).value = tipo_expressao
+                    planilha.range("F" + str(X)).value = "1"
+                    planilha.range("K" + str(X)).value = "100"
 
-                A1 = ["SPDA", "DIAG", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE"]
-                A2 = []
-                A3 = []
-                A4 = ["LC", "LD", "LE", "LI", "LM", "ET", "ILU"]
+                    A1 = ["SPDA", "DIAG", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE"]
+                    A2 = []
+                    A3 = []
+                    A4 = ["LC", "LD", "LE", "LI", "LM", "ET", "ILU"]
 
-                if tipo_expressao == "A1":
-                    planilha.range("H" + str(X)).value = "A1"
-                if tipo_expressao == "A2":
-                    planilha.range("H" + str(X)).value = "A2"
-                if tipo_expressao == "A3":
-                    planilha.range("H" + str(X)).value = "A3"
-                if tipo_expressao == "A4":
-                    planilha.range("H" + str(X)).value = "A4"
-                X = X + 1
+                    if tipo_expressao == "A1":
+                        planilha.range("H" + str(X)).value = "A1"
+                    if tipo_expressao == "A2":
+                        planilha.range("H" + str(X)).value = "A2"
+                    if tipo_expressao == "A3":
+                        planilha.range("H" + str(X)).value = "A3"
+                    if tipo_expressao == "A4":
+                        planilha.range("H" + str(X)).value = "A4"
+                    X = X + 1
 
             workbook.save(nome_ld)
 
@@ -1288,7 +1268,7 @@ def criar_projeto():
         global diretorio_raiz
         global df_projeto
 
-        pasta_default = r"C:\Users\lanch\Desktop\Projeto\1 - Padrao"
+        pasta_default = r"C:\Users\lanch\Desktop\Projeto\3 - Caique"
         nome_projeto_inicial = request.form["nome_projeto"]
         abreviacao_empresa = request.form["abreviacao_empresa"]
         descricao_projeto = request.form["descricao_projeto"]

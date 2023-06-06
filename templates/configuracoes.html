@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Configurações</title>
+    <meta charset="UTF-8">
+    <title>Todos Projetos</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.2/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.11.2/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
+        </div>
+        <div>
+            <p>Olá, {{ username }}!</p>
+            <p>Data e hora de login: {{ login_time }}</p>
+        </div>
+        <div>
+            <div class="sair">
+                <a href="{{ url_for('logout') }}" class="logout-link">Sair</a>
+            </div>
+        </div>
+
+    </header>
+
+
+    {% extends 'base.html' %}
+
+    {% block content %}
+    <h1>{% block title %} Configuraçoes {% endblock %}</h1>
+
+    <!-- Botão para abrir o pop-up de atualização de diretórios -->
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#atualizarDiretoriosModal">
+        Atualizar Diretórios
+    </button>
+
+    <!-- Botão para abrir o pop-up de adicionar/remover usuários -->
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#adicionarRemoverUsuariosModal">
+        Adicionar/Remover Usuários
+    </button>
+
+    <!-- Pop-up de atualização de diretórios -->
+    <div class="modal fade" id="atualizarDiretoriosModal" tabindex="-1" role="dialog"
+        aria-labelledby="atualizarDiretoriosModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="atualizarDiretoriosModalLabel">Atualizar Diretórios</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Formulário para atualizar os diretórios -->
+                    <form method="POST" action="{{ url_for('configuracoes') }}">
+                        <label for="diretorios">Pasta Projetos:</label>
+                        <input type="text" name="diretorios" value="{{ diretorio_projetos }}"
+                            placeholder="Pasta Projetos:" required>
+                        <label for="diretorios">Pasta padrao GRD:</label>
+                        <input type="text" name="diretorios" value="{{ diretorio_grd }}" placeholder="Pasta GRD:"
+                            required>
+                        <label for="diretorios">Pasta arquivos padroes:</label>
+                        <input type="text" name="diretorios" value="{{ diretorio_arquivos_padroes }}"
+                            placeholder="Pasta com arquivos padroes:" required>
+
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pop-up de adicionar/remover usuários -->
+    <div class="modal fade" id="adicionarRemoverUsuariosModal" tabindex="-1" role="dialog"
+        aria-labelledby="adicionarRemoverUsuariosModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adicionarRemoverUsuariosModalLabel">Adicionar/Remover Usuários</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Formulário para adicionar/remover usuários -->
+                    <form method="POST" action="{{ url_for('configuracoes') }}">
+                        <label for="usuarios">Usuários:</label>
+                        <input type="text" name="usuarios" value="{{ usuarios }}" placeholder="Usuário:" required>
+                        <label for="senha">Senha:</label>
+                        <div class="input-group">
+                            <input type="password" name="senha" id="senhaInput" placeholder="Senha" required>
+                            <div class="col-4">
+                                <label class="input-group-text" onclick="toggleSenhaVisibility()"
+                                    id="mostrarSenhaCheckbox">Mostrar senha</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSenhaVisibility() {
+            var senhaInput = document.getElementById("senhaInput");
+            var mostrarSenhaBtn = document.getElementById("mostrarSenhaBtn");
+
+            if (senhaInput.type === "password") {
+                senhaInput.type = "text";
+                mostrarSenhaBtn.textContent = "Ocultar";
+            } else {
+                senhaInput.type = "password";
+                mostrarSenhaBtn.textContent = "Mostrar";
+            }
+        }
+    </script>
+
+
+    {% endblock %}
+</body>
+
+</html>
