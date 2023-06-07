@@ -3,7 +3,7 @@ import os
 import re
 import datetime
 
-diretorio = r"C:\\Users\\lanch\\Desktop\\Projeto"
+diretorio = r"C:\Users\lanch\Desktop\Projeto"
 
 
 def gerar():
@@ -68,7 +68,21 @@ def gerar():
     """
     )
 
-    padrao = r"Arquivos do Projeto\\([^\\]+)"
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS log_tarefas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT,
+            projeto TEXT,
+            status TEXT,
+            data_status TEXT,
+            responsavel TEXT
+        )
+    """
+    )
+
+    padrao_projetos = f"""Arquivos do Projeto\\\\([^\\\\]+)"""
+    padrao_area_trabalho = f"""Area de Trabalho\\\\([^\\\\]+)"""
 
     # Percorre recursivamente todos os diretórios a partir do diretório raiz
     for raiz, _, arquivos in os.walk(diretorio):
@@ -82,17 +96,19 @@ def gerar():
             data_criacao = os.path.getctime(caminho_completo)
             data_criacao = datetime.datetime.fromtimestamp(data_criacao)
 
-            resultado = re.search(padrao, caminho_completo)
-            if resultado:
-                diretorio_status = resultado.group(1)
+            resultado_projetos = re.search(padrao_projetos, caminho_completo)
+
+            if resultado_projetos:
+                diretorio_status = resultado_projetos.group(1)
 
             if diretorio_status == "Area de Trabalho":
-                padrao = r"Area de Trabalho\\([^\\]+)"
+                resultado_pasta = re.search(padrao_area_trabalho, caminho_completo)
 
-                resultado = re.search(padrao, caminho_completo)
-                if resultado:
-                    diretorio_verificado = resultado.group(1)
-                    responsavel = diretorio_verificado
+                if resultado_pasta:
+                    responsavel = resultado_pasta.group(1)
+
+                status = "Criado"
+                aprovador = None
 
                 c.execute(
                     "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel) VALUES (?, ?, ?, ?, ?, ?)",
@@ -109,17 +125,23 @@ def gerar():
 
             elif diretorio_status == "Para Avaliacao":
                 status = "Para Avaliacao"
+                aprovador = "Andre"
+                responsavel = "Andre"
 
             elif diretorio_status == "Para Entrega":
                 status = "Para Entrega"
+                aprovador = "Andre"
+                responsavel = "Andre"
 
             elif diretorio_status == "Para Revisao":
                 status = "Para Revisao"
+                responsavel = "Andre"
+                aprovador = "Andre"
 
             if diretorio_status is not "Area de Trabalho":
                 # Para cada arquivo, insira um registro na tabela do banco de dados
                 c.execute(
-                    "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel, aprovador) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         nome_arquivo,
                         caminho_completo,
@@ -127,6 +149,7 @@ def gerar():
                         data_criacao.strftime("%Y-%m-%d %H:%M:%S"),
                         status,
                         responsavel,
+                        aprovador,
                     ),
                 )
                 conn.commit()

@@ -61,16 +61,17 @@
                     <!-- Formulário para atualizar os diretórios -->
                     <form method="POST" action="{{ url_for('configuracoes') }}">
                         <label for="diretorios">Pasta Projetos:</label>
-                        <input type="text" name="diretorios" value="{{ diretorio_projetos }}"
+                        <input type="diretorio_projetos" name="diretorio_projetos" value="{{ diretorio_projetos }}"
                             placeholder="Pasta Projetos:" required>
                         <label for="diretorios">Pasta padrao GRD:</label>
-                        <input type="text" name="diretorios" value="{{ diretorio_grd }}" placeholder="Pasta GRD:"
-                            required>
+                        <input type="diretorio_grd" name="diretorio_grd" value="{{ diretorio_grd }}"
+                            placeholder="Pasta GRD:" required>
                         <label for="diretorios">Pasta arquivos padroes:</label>
-                        <input type="text" name="diretorios" value="{{ diretorio_arquivos_padroes }}"
-                            placeholder="Pasta com arquivos padroes:" required>
+                        <input type="diretorio_arquivos_padrao" name="diretorio_arquivos_padrao"
+                            value="{{ diretorio_arquivos_padroes }}" placeholder="Pasta com arquivos padroes:" required>
 
-                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="submit" class="btn btn-primary" name="config_valor"
+                            value="config_diretorios">Salvar</button>
                     </form>
                 </div>
             </div>
@@ -102,7 +103,8 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="submit" class="btn btn-primary" name="config_valor"
+                            value="config_usuario">Salvar</button>
                     </form>
                 </div>
             </div>

@@ -742,12 +742,12 @@ def gerar_grd():
 
         caminho_ld_padrao = os.path.join(caminho_padrao, "LD_padrao.xlsx")
         caminho_grd_padrao = os.path.join(caminho_padrao, "GRD_padrao.xlsx")
-        # caminho_ld_padrao = r"C:\Users\lanch\Desktop\modeloGRD\LD_padrao.xlsx"
-        # caminho_grd_padrao = r"C:\Users\lanch\Desktop\modeloGRD\GRD_padrao.xlsx"
 
         pastas = []
         pasta_GRD_recente = None
+        pasta_ld_recente = None
         ultima_data_criacao = 0
+        contador_GRD = 0
         # Percorre todos os diretórios e arquivos no caminho fornecido
         for diretorio_atual, subdiretorios, arquivos in os.walk(caminho_verificado):
             for subdiretorio in subdiretorios:
@@ -755,14 +755,14 @@ def gerar_grd():
 
                 # Verifica se o nome da pasta contém "GRD"
                 if re.search(r"GRD", subdiretorio):
+                    contador_GRD += 1
                     caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
-                    data_criacao = os.path.getctime(caminho_pasta)
                     # Verifica se é a pasta mais recente
-                    if re.search(r"GRD 01", subdiretorio):
-                        pasta_GRD_anterior = None
-                        break
-                    else:
+                    if contador_GRD != 1:
                         pasta_GRD_anterior = pasta_GRD_recente
+                        pasta_GRD_recente = caminho_pasta
+                    else:
+                        pasta_GRD_anterior = None
                         pasta_GRD_recente = caminho_pasta
 
         # Gerar LD
@@ -964,21 +964,24 @@ def gerar_grd():
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
 
+            for diretorio_atual, subdiretorios, arquivos in os.walk(pasta_GRD_anterior):
+                for arquivo in arquivos:
+                    if re.search(r"LD", arquivo):
+                        caminho_ld_anterior = arquivo
+                        caminho_ld_anterior = os.path.join(diretorio_atual, caminho_ld_anterior)
+                    if re.search(r"GRD", arquivo):
+                        caminho_grd_anterior = arquivo
+                        caminho_grd_anterior = os.path.join(diretorio_atual, caminho_grd_anterior)
+
+
             # Abrir o arquivo Excel
             app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_padrao)
+            workbook = app.books.open(caminho_ld_anterior)
 
             # Obter a planilha desejada
             planilha = workbook.sheets["F. Rosto"]
-            # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto  # projeto
-            shape_empresa = planilha.shapes["Retângulo: Cantos Arredondados 4"]
-            shape_empresa.text = projeto  # projeto
-            # Descriçao do projeto
-            planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
             # Logica para ler qual a ultima revisao
-
             for row in planilha.range("A12:A31").options(ndim=2).value:
                 for cell in row:
                     print(cell)
@@ -994,13 +997,15 @@ def gerar_grd():
             # Buscar o nome de todos os arquivos a serem enviados na pagina
             # Mostrar no formulario o nome de cada arquivo e na frente os campos necessarios
             # Revisao
-            planilha.range("A" + str(X)).value = ultima_revisao + 1  # Revisao
+            planilha.range("A" + str(X)).value = str(ultima_revisao + 1)  # Revisao
             # Tipo (TE)
-            if tipo in tipos:
-                te = tipos[tipo]
-                planilha.range("B" + str(X)).value = te  # tipo TE
+            planilha.range("B" + str(X)).value = str(tipo)  # tipo TE
+            """if tipo in tipos:
+                tipo_te = tipos[tipo]
+                planilha.range("B" + str(X)).value = str(tipo)  # tipo TE"""
+
             # Descriçao
-            planilha.range("D" + str(X)).value = descricao  # descricao_projeto
+            planilha.range("C" + str(X)).value = str(descricao)  # descricao_projeto
 
             # Feito por:
             planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
@@ -1369,11 +1374,27 @@ def upload_files():
 
 @app.route("/configuracoes", methods=["GET", "POST"])
 def configuracoes():
-    # Lógica para lidar com o formulário de configurações (atualização de diretórios, usuários, etc.)
+    global diretorio_raiz
+    global caminho_padrao
+    global diretorio_default
+
     if request.method == "POST":
-        # Processar os dados enviados pelo formulário e atualizar as configurações
-        # Exemplo: atualizar diretórios ou adicionar/remover usuários
-        print("0")
+        config_valor = request.form.get("config_valor", None)
+
+        if config_valor == "config_diretorios":
+            diretorio_projetos = request.form.get("diretorio_projetos", None)
+            diretorio_grd = request.form("diretorio_grd", None)
+            diretorio_padrao = request.form("diretorio_arquivos_padrao", None)
+            if diretorio_projetos is not None:
+                diretorio_raiz = diretorio_projetos
+            if diretorio_grd is not None:
+                caminho_padrao = diretorio_grd
+            if diretorio_padrao is not None:
+                diretorio_default = diretorio_padrao
+
+        elif config_valor == "config_usuario":
+            usuario = request.form.get("usuario", None)
+            senha = request.form.get("senha", None)
 
     # Renderizar o template da página de configurações
     return render_template("configuracoes.html")
