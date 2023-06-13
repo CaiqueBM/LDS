@@ -101,7 +101,13 @@ def gerar():
             if resultado_projetos:
                 diretorio_status = resultado_projetos.group(1)
 
-            if diretorio_status == "Area de Trabalho":
+            if re.search(r"LD", nome_arquivo):
+                status = "Entregue"
+
+            elif re.search(r"GRD", nome_arquivo):
+                status = "Entregue"
+
+            elif diretorio_status == "Area de Trabalho":
                 resultado_pasta = re.search(padrao_area_trabalho, caminho_completo)
 
                 if resultado_pasta:

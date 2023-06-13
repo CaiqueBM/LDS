@@ -45,7 +45,7 @@ mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
 caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
-pasta_padrao_projeto = r"C:\Users\lanch\Desktop\Projeto\1 - Padrao"
+pasta_padrao_projeto = r"CC:\Users\lanch\Desktop\1 - Padrao"
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -329,7 +329,7 @@ def documentos(projeto):
         return response
 
 
-# -------------- Atualizar o status do responsavel, gerar GRD ----------------
+# -------------- Atualizar o status do responsavel ----------------
 @app.route("/atualizar_responsavel", methods=["POST"])
 def atualizar_responsavel():
     if "username" in session:
@@ -435,7 +435,6 @@ def atualizar_status():
         status_atualizar = request.form.get("status_atualizar", None)
         now = datetime.datetime.now()
         data_atualizada = now.strftime("%d/%m/%Y")
-        data_hora = now.strftime("%d/%m/%Y %H:%M:%S")
         tamanho = len(linha_selecionada)
         atualizar_responsavel = request.form.get("mudar_responsavel", None)
 
@@ -492,18 +491,6 @@ def atualizar_status():
                     c.execute(query)
                     conn.commit()
 
-                    c.execute(
-                        "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
-                        (
-                            nome_do_arquivo,
-                            projeto,
-                            status_atual[0],
-                            data_hora,
-                            username,
-                        ),
-                    )
-                    conn.commit()
-
                 conn.close()
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
@@ -537,19 +524,6 @@ def atualizar_status():
                     ]
                     query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}', aprovador = '{aprovador}' WHERE id = '{id_documentos[i]}' """
                     c.execute(query)
-
-                    c.execute(
-                        "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
-                        (
-                            nome_do_arquivo,
-                            projeto,
-                            status_atual[0],
-                            data_atualizada,
-                            username,
-                        ),
-                    )
-                    conn.commit()
-
                     conn.commit()
                     shutil.move(caminho_projeto[i], pasta_destino)
 
@@ -624,19 +598,6 @@ def atualizar_status():
                         ]
                         query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
                         c.execute(query)
-
-                        c.execute(
-                            "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
-                            (
-                                nome_do_arquivo,
-                                projeto,
-                                status_atual[0],
-                                data_atualizada,
-                                username,
-                            ),
-                        )
-                        conn.commit()
-
                         conn.commit()
 
                         shutil.move(caminho_projeto[i], pasta_destino)
@@ -677,7 +638,6 @@ def renomear_pasta():
         global linha_selecionada
         global df_selecionado
 
-        username = session["username"]
         projeto = request.form["projeto"]
         nome_pasta = request.form["nome_pasta"]
         tamanho = len(linha_selecionada)
@@ -748,19 +708,6 @@ def renomear_pasta():
                 caminho_arq = os.path.join(novo_caminho, nome_do_arquivo)
                 query = f"""UPDATE arquivos SET caminho = '{caminho_arq}', status = 'Entregue', data_entregue = '{data_atualizada}' WHERE id = {row["id"]}"""
                 c.execute(query)
-
-                c.execute(
-                    "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
-                    (
-                        nome_do_arquivo,
-                        projeto_arquivo,
-                        "Para Entrega",
-                        data_atualizada,
-                        username,
-                    ),
-                )
-                conn.commit()
-
                 conn.commit()
         conn.close()
 
@@ -1398,18 +1345,6 @@ def criar_arquivo():
             "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
             (nome_arquivo, projeto[0], titulo),
         )
-
-        c.execute(
-            "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
-            (
-                nome_arquivo,
-                projeto_recebido,
-                "Criado",
-                data_atualizada,
-                username,
-            ),
-        )
-        conn.commit()
         conn.commit()
         conn.close()
 
@@ -1512,6 +1447,7 @@ def configuracoes():
     global diretorio_raiz
     global caminho_padrao
     global diretorio_default
+    global pasta_padrao_projeto  # ainda falta adicionar
 
     if request.method == "POST":
         config_valor = request.form.get("config_valor", None)
