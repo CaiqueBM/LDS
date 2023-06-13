@@ -45,6 +45,7 @@ mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
 caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
+pasta_padrao_projeto = r"CC:\Users\lanch\Desktop\1 - Padrao"
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -307,7 +308,7 @@ def documentos(projeto):
                 sub.append(fields[1])
 
         conn.close()
-        df_tabela.drop(df_tabela.index, inplace=True)
+        # df_tabela.drop(df_tabela.index, inplace=True)
 
         response = make_response(
             render_template(
@@ -326,6 +327,42 @@ def documentos(projeto):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
         return response
+
+
+# -------------- Atualizar o status do responsavel, gerar GRD ----------------
+@app.route("/atualizar_responsavel", methods=["POST"])
+def atualizar_responsavel():
+    if "username" in session:
+        username = session["username"]
+        projeto = request.form["projeto"]
+        linha_selecionada = request.form.getlist("selecionados")
+        linha_selecionada = list(map(int, linha_selecionada))
+
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM arquivos"
+        df_tabela = pd.read_sql_query(query, conn)
+        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        status_atual = df_selecionado["status"].values.tolist()
+        id_documentos = df_selecionado["id"].values.tolist()
+        conn.close()
+
+        '''conn = sqlite3.connect("database.db")
+        c = conn.cursor()
+        query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+        c.execute(query)
+        conn.commit()'''
+
+        responsavel_status = status_atual[0]
+
+        return redirect(
+            url_for(
+                "documentos",
+                projeto=projeto,
+                responsavel_status=responsavel_status,
+                atualizar=atualizar,
+                df_selecionado=df_selecionado,
+            )
+        )
 
 
 # -------------- Atualizar o status do responsavel, gerar GRD ----------------
@@ -399,6 +436,7 @@ def atualizar_status():
         now = datetime.datetime.now()
         data_atualizada = now.strftime("%d/%m/%Y")
         tamanho = len(linha_selecionada)
+        atualizar_responsavel = request.form.get("mudar_responsavel", None)
 
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
@@ -725,6 +763,9 @@ def gerar_grd():
         except ValueError:
             projeto = projeto_atual
 
+        partes = projeto.split("-", 1)
+        projeto_recebido = partes[1].strip()
+
         caminho_projeto = os.path.join(diretorio_raiz, projeto)
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
@@ -774,9 +815,9 @@ def gerar_grd():
             planilha = workbook.sheets["F. Rosto"]
 
             # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto  # projeto
+            planilha.range("J1").value = projeto_atual  # projeto
             shape_empresa = planilha.shapes["nome_empresa1"]
-            shape_empresa.text = projeto  # projeto
+            shape_empresa.text = projeto_atual  # projeto
             # Descriçao do projeto
             planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
@@ -815,7 +856,7 @@ def gerar_grd():
             planilha = workbook.sheets["Lista"]
 
             shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto  # projeto
+            shape_empresa.text = projeto_atual  # projeto
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -835,6 +876,7 @@ def gerar_grd():
             planilha.range("F" + str(X)).value = "0"  # Revisao
             planilha.range("I" + str(X)).value = "LD"  # tipo TE
             planilha.range("J" + str(X)).value = "2"  # tipo TE
+            planilha.range("H" + str(X)).value = "A4"  # tipo TE
             planilha.range("L" + str(X)).value = "=1/8*J11"
 
             padrao = r"R\d+"
@@ -850,7 +892,7 @@ def gerar_grd():
                 titulo = result_arquivo["titulo"].iloc[0]
                 planilha.range("B" + str(X)).value = nome
                 planilha.range("C" + str(X)).value = str(titulo)
-                resultado = re.search(r"_Rev(\d+)", nome)
+                resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
                     planilha.range("D" + str(X)).value = revisao
@@ -906,68 +948,6 @@ def gerar_grd():
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
-            # ------------------------- GRD ------------------------------------
-            app = xw.App(visible=False)
-            workbook = app.books.open(caminho_grd_padrao)  # LD vazia para preencher
-            # Obter a planilha desejada
-            planilha = workbook.sheets["GRD"]
-
-            nome_grd = "GRD-ABS-" + abreviacao_empresa + "-001" + ".xlsx"
-            nome_grd = os.path.join(novo_caminho, nome_grd)
-
-            shape_empresa = planilha.shapes["nome_empresa3"]
-            shape_empresa.text = str(projeto_atual)  # projeto
-
-            planilha.range("N7").value = data_envio  # data de envio
-            planilha.range("N10").value = "data_envio"  # data de envio
-
-            X = 36
-            planilha.range("A" + str(X)).value = "01"  # primeiro elemento
-            planilha.range(
-                "H" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
-            planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
-            planilha.range("O" + str(X)).value = "0"  # Revisao
-            planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-            planilha.range("S" + str(X)).value = "1"  # Quantidade
-            planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"  # Revisao
-            planilha.range("V" + str(X)).value = "Original"  # Revisao
-            padrao = r"R\d+"
-            X = 37
-
-            conn = sqlite3.connect("database.db")
-            query = "SELECT * FROM dados_arquivo"
-            df_arquivo = pd.read_sql_query(query, conn)
-
-            for nome in nome_arq:
-                planilha.range("A" + str(X)).value = str(X - 36)  #  proximos elementos
-                result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
-                titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("H" + str(X)).value = nome
-                planilha.range("K" + str(X)).value = str(titulo)
-                resultado = re.search(r"_Rev(\d+)", nome)
-                if resultado:
-                    revisao = resultado.group(1)
-                    planilha.range("O" + str(X)).value = revisao
-                planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-                planilha.range("S" + str(X)).value = "1"
-                planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
-                planilha.range("V" + str(X)).value = "Original"
-
-                if tipo_expressao in A1:
-                    planilha.range("Q" + str(X)).value = "A1"
-                if tipo_expressao in A2:
-                    planilha.range("Q" + str(X)).value = "A2"
-                if tipo_expressao in A3:
-                    planilha.range("Q" + str(X)).value = "A3"
-                if tipo_expressao in A4:
-                    planilha.range("Q" + str(X)).value = "A4"
-                X = X + 1
-
-            workbook.save(nome_grd)
-            # Fechar o arquivo Excel
-            workbook.close()
-            app.quit()
 
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
@@ -976,14 +956,14 @@ def gerar_grd():
                 for arquivo in arquivos:
                     if re.search(r"LD", arquivo):
                         arquivo_ld_anterior = arquivo
-                        partes = arquivo_ld_anterior.split("_Rev")
-                        parte1 = arquivo_ld_anterior.split("_Rev")[1]
+                        partes = arquivo_ld_anterior.split("_R")
+                        parte1 = arquivo_ld_anterior.split("_R")[1]
                         parte2 = parte1.rsplit(".", 1)[0]
                         if len(partes) > 1:
                             nova_revisao_ld = int(parte2) + 1
                             inicio_nome_ld = partes[0]
-                            novo_nome_ld = (
-                                inicio_nome_ld + str(nova_revisao_ld) + ".xlsx"
+                            nome_arq_ld = (
+                                inicio_nome_ld + "_R" + str(nova_revisao_ld) + ".xlsx"
                             )
 
                         caminho_ld_anterior = os.path.join(
@@ -991,11 +971,13 @@ def gerar_grd():
                         )
                     if re.search(r"GRD", arquivo):
                         arquivo_grd_anterior = arquivo
-                        partes = nome_grd.split("-")
+                        partes = arquivo_grd_anterior.split("-")
                         if len(partes) > 2:
                             nova_revisao_grd = int(partes[-1].split(".")[0]) + 1
-                            inicio_nome_grd = partes[0]
-                            novo_nome_grd = inicio_nome_grd + nova_revisao_grd
+                            inicio_nome_grd = partes[0] + partes[1] + partes[2]
+                            novo_nome_grd = (
+                                inicio_nome_grd + str(nova_revisao_grd) + ".xlsx"
+                            )
 
                         caminho_grd_anterior = os.path.join(
                             diretorio_atual, arquivo_grd_anterior
@@ -1040,7 +1022,7 @@ def gerar_grd():
             data_envio = now.strftime("%d/%m/%Y")
             planilha.range("N" + str(X)).value = data_envio  # data
 
-            nome_ld = os.path.join(caminho_pasta, novo_nome_ld)
+            nome_ld = os.path.join(caminho_pasta, nome_arq_ld)
 
             # ------------------- Modificando a planilha LISTA -------------------
 
@@ -1059,7 +1041,7 @@ def gerar_grd():
 
             planilha.range(
                 "B" + str(X)
-            ).value = novo_nome_ld  # nome da lista de documentos
+            ).value = nome_arq_ld  # nome da lista de documentos
 
             planilha.range("D" + str(X)).value = str(nova_revisao_ld)  # Revisao
 
@@ -1068,14 +1050,14 @@ def gerar_grd():
             df_arquivo = pd.read_sql_query(query, conn)
 
             # Logica para ler qual a ultima revisao
-            for row in planilha.range("A12:A31").options(ndim=2).value:
+            for row in planilha.range("B12:B31").options(ndim=2).value:
                 for cell in row:
                     if cell is not None:
                         X = (
                             planilha.range("A" + str(planilha.cells.last_cell.row))
                             .end("up")
                             .row
-                            + 1
+                            + 13
                         )  # Proxima linha em branco, adicionar os parametros
 
             for nome in nome_arq:
@@ -1083,7 +1065,7 @@ def gerar_grd():
                 titulo = result_arquivo["titulo"].iloc[0]
                 planilha.range("B" + str(X)).value = nome
                 planilha.range("C" + str(X)).value = str(titulo)
-                resultado = re.search(r"_Rev(\d+)", nome)
+                resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
                     planilha.range("D" + str(X)).value = revisao
@@ -1116,14 +1098,7 @@ def gerar_grd():
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
                 A3 = ["DIAG"]
-                A4 = [
-                    "LC",
-                    "LD",
-                    "LE",
-                    "LI",
-                    "LM",
-                    "ET",
-                ]
+                A4 = ["LC", "LD", "LE", "LI", "LM", "ET"]
 
                 if tipo_expressao in A1:
                     planilha.range("H" + str(X)).value = "A1"
@@ -1139,81 +1114,78 @@ def gerar_grd():
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
-            # ------------------------- GRD ------------------------------------
-            app = xw.App(visible=False)
-            workbook = app.books.open(caminho_grd_anterior)  # LD vazia para preencher
-            # Obter a planilha desejada
-            planilha = workbook.sheets["GRD"]
 
-            # nome_grd = "GRD-ABS-" + abreviacao_empresa + "-001" + ".xlsx"
-            nome_grd = os.path.join(novo_caminho, nome_grd)
+        # ------------------------- GRD ------------------------------------
+        app = xw.App(visible=False)
+        workbook = app.books.open(caminho_grd_padrao)  # LD vazia para preencher
+        # Obter a planilha desejada
+        planilha = workbook.sheets["GRD"]
 
-            planilha.range("N7").value = data_envio  # data de envio
-            planilha.range("N10").value = "data_envio"  # data de envio
+        nome_grd = "GRD-ABS-" + abreviacao_empresa + "-001" + ".xlsx"
+        nome_grd = os.path.join(novo_caminho, nome_grd)
 
-            X = 36
-            if planilha.range("H" + str(X)).value == nome_arq_ld:
-                nome_arq_ld = (
-                    "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R" + ".xlsx"
-                )
-                planilha.range("H" + str(X)).value = nome_arq_ld
+        shape_empresa = planilha.shapes["nome_empresa3"]
+        shape_empresa.text = str(projeto_atual)  # projeto
 
-                planilha.range("A" + str(X)).value = "01"  # primeiro elemento
-                planilha.range(
-                    "H" + str(X)
-                ).value = nome_arq_ld  # nome da lista de documentos
-                planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
-                planilha.range("O" + str(X)).value = "0"  # Revisao
-                planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-                planilha.range("S" + str(X)).value = "1"  # Quantidade
-                planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"  # Revisao
-                planilha.range("V" + str(X)).value = "Original"  # Revisao
-                padrao = r"R\d+"
-            X = 37
+        planilha.range("N7").value = data_envio  # data de envio
+        planilha.range("N10").value = "data_envio"  # data de envio
 
-            conn = sqlite3.connect("database.db")
-            query = "SELECT * FROM dados_arquivo"
-            df_arquivo = pd.read_sql_query(query, conn)
+        X = 36
+        planilha.range("A" + str(X)).value = "01"  # primeiro elemento
+        planilha.range("H" + str(X)).value = nome_arq_ld  # nome da lista de documentos
+        planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
+        planilha.range("O" + str(X)).value = "0"  # Revisao
+        planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
+        planilha.range("Q" + str(X)).value = "A4"  # tipo TE
+        planilha.range("S" + str(X)).value = "1"  # Quantidade
+        planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"  # Revisao
+        planilha.range("V" + str(X)).value = "Original"  # Revisao
+        padrao = r"R\d+"
+        X = 37
 
-            for nome in nome_arq:
-                planilha.range("A" + str(X)).value = str(X - 36)  #  proximos elementos
-                result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
-                titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("H" + str(X)).value = nome
-                planilha.range("K" + str(X)).value = str(titulo)
-                resultado = re.search(r"_Rev(\d+)", nome)
-                if resultado:
-                    revisao = resultado.group(1)
-                    planilha.range("O" + str(X)).value = revisao
-                planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-                planilha.range("S" + str(X)).value = "1"
-                planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
-                planilha.range("V" + str(X)).value = "Original"
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM dados_arquivo"
+        df_arquivo = pd.read_sql_query(query, conn)
 
-                if tipo_expressao in A1:
-                    planilha.range("Q" + str(X)).value = "A1"
-                if tipo_expressao in A2:
-                    planilha.range("Q" + str(X)).value = "A2"
-                if tipo_expressao in A3:
-                    planilha.range("Q" + str(X)).value = "A3"
-                if tipo_expressao in A4:
-                    planilha.range("Q" + str(X)).value = "A4"
-                X = X + 1
+        for nome in nome_arq:
+            planilha.range("A" + str(X)).value = str(X - 36)  #  proximos elementos
+            result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
+            titulo = result_arquivo["titulo"].iloc[0]
+            planilha.range("H" + str(X)).value = nome
+            planilha.range("K" + str(X)).value = str(titulo)
+            resultado = re.search(r"_Rev(\d+)", nome)
+            if resultado:
+                revisao = resultado.group(1)
+                planilha.range("O" + str(X)).value = revisao
+            planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
+            planilha.range("S" + str(X)).value = "1"
+            planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
+            planilha.range("V" + str(X)).value = "Original"
 
-            workbook.save(nome_grd)
-            # Fechar o arquivo Excel
-            workbook.close()
-            app.quit()
+            if tipo_expressao in A1:
+                planilha.range("Q" + str(X)).value = "A1"
+            if tipo_expressao in A2:
+                planilha.range("Q" + str(X)).value = "A2"
+            if tipo_expressao in A3:
+                planilha.range("Q" + str(X)).value = "A3"
+            if tipo_expressao in A4:
+                planilha.range("Q" + str(X)).value = "A4"
+            X = X + 1
 
-            pasta_GRD_recente = None
-            pasta_GRD_anterior = None
+        workbook.save(nome_grd)
+        # Fechar o arquivo Excel
+        workbook.close()
+        app.quit()
+
+        pasta_GRD_recente = None
+        pasta_GRD_anterior = None
 
         control = ""
 
         return redirect(
             url_for(
                 "user_projetos",
-                projeto=projeto,
+                projeto=projeto_recebido,
             )
         )
 
@@ -1305,35 +1277,38 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
         df_teste = pd.read_sql_query(query, conn)
-        result_teste = df_teste[df_teste["projeto"] == projeto_recebido]
+
+        partes = nome_arquivo.split("-", 4)
+        padrao = "-".join(partes[:4])
+
+        result_teste = df_teste[df_teste["nome"].str.contains(padrao, regex=False)]
+
+        # result_teste = df_teste[df_teste["projeto"] == projeto_recebido]
+
         if not result_teste.empty:
-            padrao = r"PLT-(\d+)_R0.dwg"
             sequenciais = []
             for nome in result_teste["nome"]:
-                resultado = re.search(padrao, nome)
-                if resultado:
-                    sequencial = int(resultado.group(1))
-                    sequenciais.append(sequencial)
+                parte = nome.split("_")
+                numero_parte = parte[0]
+
+                partes = numero_parte.split("-")
+                sequencial = partes[4]
+                # sequencial = numero_parte.split("_")[0]
+                sequenciais.append(sequencial)
             if sequenciais:
                 ultimo_sequencial = max(sequenciais)
-                novo_sequencial = ultimo_sequencial + 1
-                nome_arquivo = re.sub(
-                    r"(PLT-)\d+(_R0.dwg)",
-                    rf"\g<1>{novo_sequencial}\g<2>",
-                    nome_arq,
-                )
-
-        if nome_arquivo == nome_arq:
-            # Encontre todos os arquivos no diretório
-            padrao = r"PLT-(\d+)_R0.dwg"
-            resultado = re.search(padrao, nome_arquivo)
-
-            if resultado:
-                numero_sequencial = int(resultado.group(1))
-                novo_numero_sequencial = numero_sequencial + 1
-                nome_arquivo = nome_arquivo.replace(
-                    f"PLT-{numero_sequencial}_R0.dwg",
-                    f"PLT-{novo_numero_sequencial}_R0.dwg",
+                novo_sequencial = int(ultimo_sequencial) + 1
+                nome_arquivo = (
+                    "ABS-"
+                    + str(abreviacao_empresa)
+                    + "-"
+                    + str(disciplina)
+                    + "-"
+                    + str(sub)
+                    + "-"
+                    + str(novo_sequencial)
+                    + "_R0"
+                    + str(extension)
                 )
 
         caminho_origem = os.path.join(diretorio_default, arquivo_existente)
@@ -1376,7 +1351,7 @@ def criar_arquivo():
         return redirect(
             url_for(
                 "documentos",
-                projeto=projeto,
+                projeto=projeto_recebido,
                 titulo=titulo,
             )
         )
@@ -1387,8 +1362,8 @@ def criar_projeto():
     if "username" in session:
         global diretorio_raiz
         global df_projeto
+        global pasta_padrao_projeto
 
-        pasta_default = r"C:\Users\lanch\Desktop\Projeto\1 - Padrao"
         nome_projeto_inicial = request.form["nome_projeto"]
         abreviacao_empresa = request.form["abreviacao_empresa"]
         descricao_projeto = request.form["descricao_projeto"]
@@ -1417,7 +1392,7 @@ def criar_projeto():
         conn.commit()
         conn.close()
 
-        shutil.copytree(pasta_default, pasta_atualizada)
+        shutil.copytree(pasta_padrao_projeto, pasta_atualizada)
         return redirect(
             url_for(
                 "projetos",
