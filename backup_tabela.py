@@ -98,10 +98,48 @@ def gerar():
 
             resultado_projetos = re.search(padrao_projetos, caminho_completo)
 
+            nome_arq = None
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM arquivos"
+        df_teste = pd.read_sql_query(query, conn)
+
+        partes = nome_arquivo.split("-", 4)
+        padrao = "-".join(partes[:4])
+
+        result_teste = df_teste[df_teste["nome"].str.contains(padrao, regex=False)]
+
+        # result_teste = df_teste[df_teste["projeto"] == projeto_recebido]
+
+        if not result_teste.empty:
+            sequenciais = []
+            for nome in result_teste["nome"]:
+                parte = nome.split("_")
+                numero_parte = parte[0]
+
+                partes = numero_parte.split("-")
+                sequencial = partes[4]
+                # sequencial = numero_parte.split("_")[0]
+                sequenciais.append(sequencial)
+            if sequenciais:
+                ultimo_sequencial = max(sequenciais)
+                novo_sequencial = int(ultimo_sequencial) + 1
+                nome_arquivo = (
+                    "ABS-"
+                    + str(abreviacao_empresa)
+                    + "-"
+                    + str(disciplina)
+                    + "-"
+                    + str(sub)
+                    + "-"
+                    + str(novo_sequencial)
+                    + "_R0"
+                    + str(extension)
+                )
+
+
             if resultado_projetos:
                 diretorio_status = resultado_projetos.group(1)
 
-            if str(diretorio_status) != "Referencias":
                 if re.search(r"LD", nome_arquivo):
                     status = "Entregue"
 
@@ -136,25 +174,16 @@ def gerar():
                     responsavel = "Andre"
 
                 elif diretorio_status == "Para Entrega":
-                    partes_subpasta = raiz.split("\\")
-                    sub_pasta = partes_subpasta[8]
+                    status = "Para Entrega"
+                    aprovador = "Andre"
+                    responsavel = "Andre"
 
-                    if sub_pasta != "Lixo":
-                        if sub_pasta == "Aprovados":
-                            status = "Para Entrega"
-                            aprovador = "Andre"
-                            responsavel = "Andre"
-                        else:
-                            status = "Entregue"
-                            aprovador = "Andre"
-                            responsavel = "Andre"
-                    else:
-                        continue
+                '''elif diretorio_status == "Para Revisao":
+                    status = "Para Revisao"
+                    responsavel = "Andre"
+                    aprovador = "Andre"'''
 
-                elif diretorio_status == "Para Revisao":
-                    continue
-
-                if diretorio_status != "Area de Trabalho":
+                if diretorio_status != "Ar-ea de Trabalho":
                     # Para cada arquivo, insira um registro na tabela do banco de dados
                     c.execute(
                         "INSERT OR IGNORE INTO arquivos (nome, caminho, projeto, data_criado, status, responsavel, aprovador) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -169,6 +198,5 @@ def gerar():
                         ),
                     )
                     conn.commit()
-
-                    # Fecha a conexão com o banco de dados
-    conn.close()
+                    conn.close()
+    # Fecha a conexão com o banco de dados

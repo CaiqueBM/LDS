@@ -9,6 +9,7 @@ from flask import (
     flash,
     send_file,
 )
+from numpy._typing import _80Bit
 import pandas as pd
 import datetime
 import sqlite3
@@ -45,7 +46,7 @@ mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
 caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
-pasta_padrao_projeto = r"C:\Users\lanch\Desktop\Projeto\1 - Padrao"
+pasta_padrao_projeto = r"C:\Users\lanch\Desktop\1 - Padrao"
 
 app.static_folder = "static"
 app.secret_key = "2@2"
@@ -335,34 +336,88 @@ def atualizar_responsavel():
     if "username" in session:
         username = session["username"]
         projeto = request.form["projeto"]
+        atualizar_responsavel = request.form.get("mudar_responsavel", None)
         linha_selecionada = request.form.getlist("selecionados")
         linha_selecionada = list(map(int, linha_selecionada))
+        tamanho_lista = len(linha_selecionada)
+
+        now = datetime.datetime.now()
+        data_hora = now.strftime("%d/%m/%Y %H:%M:%S")
 
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
         df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
         status_atual = df_selecionado["status"].values.tolist()
+        caminho_projeto = df_selecionado["caminho"].values.tolist()
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
-        '''conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        query = f"""UPDATE arquivos SET status = '{novo_status}', responsavel = '{username}', data_avaliacao = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
-        c.execute(query)
-        conn.commit()'''
-
-        responsavel_status = status_atual[0]
-
-        return redirect(
-            url_for(
-                "documentos",
-                projeto=projeto,
-                responsavel_status=responsavel_status,
-                atualizar=atualizar,
-                df_selecionado=df_selecionado,
+        if tamanho_lista <= 0:  # Retirar erro do botao
+            return redirect(
+                url_for(
+                    "documentos",
+                    projeto=projeto,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
             )
-        )
+        else:
+            if status_atual[0] == "Criado" or status_atual[0] == "Em Desenvolvimento":
+                conn = sqlite3.connect("database.db")
+                c = conn.cursor()
+                for i in range(tamanho_lista):
+                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
+
+                    partes_pasta = caminho_projeto[i].split(
+                        "\\"
+                    )  # Dividindo o caminho do projeto usando as barras duplas como separadores
+                    indice_area_trabalho = partes_pasta.index(
+                        "Area de Trabalho"
+                    )  # Obtendo o índice da parte "Area de Trabalho" na lista
+                    caminho_sem_responsavel = "\\".join(
+                        partes_pasta[: indice_area_trabalho + 1]
+                    )  # Unindo as partes do caminho até a área de trabalho novamente usando as barras duplas
+                    caminho_final = (
+                        caminho_sem_responsavel
+                        + "\\"
+                        + username
+                        + "\\"
+                        + nome_do_arquivo
+                    )  # Adicionando o responsável ao final do caminho
+
+                    shutil.move(caminho_projeto[i], caminho_final)
+
+                    # Atualiza o status do arquivo na base de dados
+
+                    query = f"""UPDATE arquivos SET responsavel = '{username}', caminho = '{caminho_final}', status = 'Em Desenvolvimento' WHERE id = '{id_documentos[i]}' """
+                    c.execute(query)
+                    conn.commit()
+
+                    c.execute(
+                        "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
+                        (
+                            nome_do_arquivo,
+                            projeto,
+                            status_atual[0],
+                            data_hora,
+                            username,
+                        ),
+                    )
+                    conn.commit()
+
+                conn.close()
+            else:
+                print("0")
+            return redirect(
+                url_for(
+                    "documentos",
+                    projeto=projeto,
+                    responsavel_status=responsavel_status,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
+            )
 
 
 # -------------- Atualizar o status do responsavel, gerar GRD ----------------
@@ -381,27 +436,39 @@ def intermediador():
         projeto = request.form["projeto"]
         linha_selecionada = request.form.getlist("selecionados")
         linha_selecionada = list(map(int, linha_selecionada))
+        tamanho_lista = len(linha_selecionada)
 
-        conn = sqlite3.connect("database.db")
-        query = "SELECT * FROM arquivos"
-        df_tabela = pd.read_sql_query(query, conn)
-        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
-        status_atual = df_selecionado["status"].values.tolist()
-        conn.close()
-
-        responsavel_status = status_atual[0]
-
-        control = "atualizar"
-
-        return redirect(
-            url_for(
-                "user_projetos",
-                projeto=projeto,
-                responsavel_status=responsavel_status,
-                atualizar=atualizar,
-                df_selecionado=df_selecionado,
+        if tamanho_lista <= 0:
+            return redirect(
+                url_for(
+                    "user_projetos",
+                    projeto=projeto,
+                    responsavel_status=responsavel_status,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
             )
-        )
+        else:
+            conn = sqlite3.connect("database.db")
+            query = "SELECT * FROM arquivos"
+            df_tabela = pd.read_sql_query(query, conn)
+            df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+            status_atual = df_selecionado["status"].values.tolist()
+            conn.close()
+
+            responsavel_status = status_atual[0]
+
+            control = "atualizar"
+
+            return redirect(
+                url_for(
+                    "user_projetos",
+                    projeto=projeto,
+                    responsavel_status=responsavel_status,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
+            )
 
 
 @app.route("/atualizar_status", methods=["GET", "POST"])
@@ -437,7 +504,6 @@ def atualizar_status():
         data_atualizada = now.strftime("%d/%m/%Y")
         data_hora = now.strftime("%d/%m/%Y %H:%M:%S")
         tamanho = len(linha_selecionada)
-        atualizar_responsavel = request.form.get("mudar_responsavel", None)
 
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
@@ -868,9 +934,9 @@ def gerar_grd():
             planilha = workbook.sheets["F. Rosto"]
 
             # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto_atual  # projeto
+            planilha.range("J1").value = projeto_recebido  # projeto
             shape_empresa = planilha.shapes["nome_empresa1"]
-            shape_empresa.text = projeto_atual  # projeto
+            shape_empresa.text = projeto_recebido  # projeto
             # Descriçao do projeto
             planilha.range("A5").value = descricao_projeto  # descricao_projeto
 
@@ -909,7 +975,7 @@ def gerar_grd():
             planilha = workbook.sheets["Lista"]
 
             shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto_atual  # projeto
+            shape_empresa.text = projeto_recebido  # projeto
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -928,8 +994,9 @@ def gerar_grd():
             planilha.range("D" + str(X)).value = "0"  # Revisao
             planilha.range("F" + str(X)).value = "0"  # Revisao
             planilha.range("I" + str(X)).value = "LD"  # tipo TE
-            planilha.range("J" + str(X)).value = "2"  # tipo TE
-            planilha.range("H" + str(X)).value = "A4"  # tipo TE
+            planilha.range("J" + str(X)).value = "2"  # paginas
+            planilha.range("H" + str(X)).value = "A4"  # formato
+            planilha.range("K" + str(X)).value = "100"
             planilha.range("L" + str(X)).value = "=1/8*J11"
 
             padrao = r"R\d+"
@@ -972,8 +1039,10 @@ def gerar_grd():
                     tipo_expressao = match.group(0)
                     # novo_nome = nome_arq.replace(expressao_encontrada, "")
                 planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("F" + str(X)).value = "1"
+                planilha.range("F" + str(X)).value = "0"
+                planilha.range("J" + str(X)).value = "1"  # paginas
                 planilha.range("K" + str(X)).value = "100"
+                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
@@ -1001,6 +1070,10 @@ def gerar_grd():
             # Fechar o arquivo Excel
             workbook.close()
             app.quit()
+
+            seq_grd = "01"
+            nome_grd_parte = "GRD-ABS-" + abreviacao_empresa + "-0" + seq_grd + ".xlsx"
+            nome_grd = os.path.join(novo_caminho, nome_grd_parte)
 
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
@@ -1042,6 +1115,8 @@ def gerar_grd():
 
             # Obter a planilha desejada
             planilha = workbook.sheets["F. Rosto"]
+
+            planilha.range("J6").value = nome_arq_ld
 
             # Logica para ler qual a ultima revisao
             for row in planilha.range("A12:A31").options(ndim=2).value:
@@ -1096,7 +1171,7 @@ def gerar_grd():
                 "B" + str(X)
             ).value = nome_arq_ld  # nome da lista de documentos
 
-            planilha.range("D" + str(X)).value = str(nova_revisao_ld)  # Revisao
+            planilha.range("F" + str(X)).value = str(nova_revisao_ld)  # Revisao
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
@@ -1110,7 +1185,7 @@ def gerar_grd():
                             planilha.range("A" + str(planilha.cells.last_cell.row))
                             .end("up")
                             .row
-                            + 13
+                            + 12
                         )  # Proxima linha em branco, adicionar os parametros
 
             for nome in nome_arq:
@@ -1118,13 +1193,13 @@ def gerar_grd():
                 titulo = result_arquivo["titulo"].iloc[0]
                 planilha.range("B" + str(X)).value = nome
                 planilha.range("C" + str(X)).value = str(titulo)
+                planilha.range("D" + str(X)).value = "0"
                 resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
-                    planilha.range("D" + str(X)).value = revisao
+                    planilha.range("F" + str(X)).value = revisao
                 expressoes = [
                     "LC",
-                    "LD",
                     "LE",
                     "LI",
                     "LM",
@@ -1143,15 +1218,15 @@ def gerar_grd():
                 match = re.search(padrao, nome)
                 if match:
                     tipo_expressao = match.group(0)
-                    # novo_nome = nome_arq.replace(expressao_encontrada, "")
                 planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("F" + str(X)).value = "1"
+                planilha.range("J" + str(X)).value = "1"
                 planilha.range("K" + str(X)).value = "100"
+                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
                 A3 = ["DIAG"]
-                A4 = ["LC", "LD", "LE", "LI", "LM", "ET"]
+                A4 = ["LC", "LE", "LI", "LM", "ET"]
 
                 if tipo_expressao in A1:
                     planilha.range("H" + str(X)).value = "A1"
@@ -1168,26 +1243,60 @@ def gerar_grd():
             workbook.close()
             app.quit()
 
+            if pasta_GRD_anterior is not None:
+                for diretorio_atual, subdiretorios, arquivos in os.walk(
+                    pasta_GRD_anterior
+                ):
+                    for arquivo in arquivos:
+                        if re.search(r"GRD", arquivo):
+                            parte_split_grd = arquivo.split("-")
+                            seq_grd = parte_split_grd[3].split(".")[0]
+
+                            if int(seq_grd) > 9:
+                                seq_grd = int(seq_grd) + 1
+                                nome_grd_parte = (
+                                    "GRD-ABS-"
+                                    + abreviacao_empresa
+                                    + "-0"
+                                    + str(seq_grd)
+                                    + ".xlsx"
+                                )
+                                nome_grd = os.path.join(novo_caminho, nome_grd_parte)
+                            else:
+                                seq_grd = "0" + str(int(seq_grd) + 1)
+                                nome_grd_parte = (
+                                    "GRD-ABS-"
+                                    + abreviacao_empresa
+                                    + "-0"
+                                    + seq_grd
+                                    + ".xlsx"
+                                )
+                                nome_grd = os.path.join(novo_caminho, nome_grd_parte)
+
         # ------------------------- GRD ------------------------------------
         app = xw.App(visible=False)
         workbook = app.books.open(caminho_grd_padrao)  # LD vazia para preencher
         # Obter a planilha desejada
         planilha = workbook.sheets["GRD"]
 
-        nome_grd = "GRD-ABS-" + abreviacao_empresa + "-001" + ".xlsx"
-        nome_grd = os.path.join(novo_caminho, nome_grd)
-
         shape_empresa = planilha.shapes["nome_empresa3"]
-        shape_empresa.text = str(projeto_atual)  # projeto
+        shape_empresa.text = str(projeto_recebido)  # projeto
 
         planilha.range("N7").value = data_envio  # data de envio
-        planilha.range("N10").value = "data_envio"  # data de envio
+
+        parte_num_grd = nome_grd.split("\\")
+        numero_grd = (parte_num_grd[9].split("-")[3]).split(".")[0]
+
+        planilha.range("N10").value = numero_grd  # data de envio
+
+        parte_split_ld = nome_arq_ld.split("_R", 1)
+        nova_revisao = parte_split_ld[1].split(".")[0]
 
         X = 36
         planilha.range("A" + str(X)).value = "01"  # primeiro elemento
         planilha.range("H" + str(X)).value = nome_arq_ld  # nome da lista de documentos
         planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
-        planilha.range("O" + str(X)).value = "0"  # Revisao
+        planilha.range("O" + str(X)).value = nova_revisao  # Revisao
         planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
         planilha.range("Q" + str(X)).value = "A4"  # tipo TE
         planilha.range("S" + str(X)).value = "1"  # Quantidade
@@ -1206,7 +1315,7 @@ def gerar_grd():
             titulo = result_arquivo["titulo"].iloc[0]
             planilha.range("H" + str(X)).value = nome
             planilha.range("K" + str(X)).value = str(titulo)
-            resultado = re.search(r"_Rev(\d+)", nome)
+            resultado = re.search(r"_R(\d+)", nome)
             if resultado:
                 revisao = resultado.group(1)
                 planilha.range("O" + str(X)).value = revisao

@@ -35,7 +35,8 @@
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
         <input type="hidden" name="responsavel_status" value="{{ responsavel_status }}">
 
-        <button type="submit" class="selecionar_arquivos">Selecionar</button>
+        <button type="submit" class="selecionar_arquivos"
+            onsubmit="return verificarCheckboxSelecionado();">Selecionar</button>
 
         {% for status in status_list %}
 
@@ -248,8 +249,6 @@
     {% endif %}
 
     {% endblock %}
-
-
 
 
 </body>
