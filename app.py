@@ -100,7 +100,7 @@ def logout():
     return redirect(url_for("index"))
 
 
-# ----------------- Rota da pagina usuario, todas acoes serao dadas aqui---------------S
+# ----------------- Rota da pagina usuario, todas acoes serao dadas aqui---------------
 
 
 @app.route("/user")
@@ -1321,6 +1321,7 @@ def gerar_grd():
                 planilha.range("O" + str(X)).value = revisao
             planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
             planilha.range("S" + str(X)).value = "1"
+
             planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
             planilha.range("V" + str(X)).value = "Original"
 
