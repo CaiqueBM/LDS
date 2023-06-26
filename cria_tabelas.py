@@ -105,7 +105,7 @@ def gerar():
         descricao = diretorios[str(n)]
         diretorio = eval(descricao)
 
-        query = f"""UPDATE arquivos SET diretorio = '{diretorio}' WHERE id = '{n}' """
+        query = f'''UPDATE arquivos SET diretorio = '{diretorio}' WHERE id = '{n}' '''
         c.execute(query)
         conn.commit()"""
 
