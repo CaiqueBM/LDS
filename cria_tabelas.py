@@ -105,12 +105,9 @@ def gerar():
         descricao = diretorios[str(n)]
         diretorio = eval(descricao)
 
-        c.execute(
-            "INSERT INTO diretorios (descricao, diretorio) VALUES (?, ?)",
-            (descricao, diretorio),
-        )
+        query = f"""UPDATE arquivos SET diretorio = '{diretorio}' WHERE id = '{n}' """
+        c.execute(query)
         conn.commit()
-    conn.close()
 
     padrao_projetos = f"""Arquivos do Projeto\\\\([^\\\\]+)"""
     padrao_area_trabalho = f"""Area de Trabalho\\\\([^\\\\]+)"""
