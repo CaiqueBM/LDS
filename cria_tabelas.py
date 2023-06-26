@@ -95,7 +95,7 @@ def gerar():
     caminho_padrao = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/GRD E LD padrao"""
     pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
 
-    diretorios = {
+    """diretorios = {
         "1": "diretorio_raiz",
         "2": "diretorio_default",
         "3": "caminho_padrao",
@@ -107,7 +107,7 @@ def gerar():
 
         query = f"""UPDATE arquivos SET diretorio = '{diretorio}' WHERE id = '{n}' """
         c.execute(query)
-        conn.commit()
+        conn.commit()"""
 
     padrao_projetos = f"""Arquivos do Projeto\\\\([^\\\\]+)"""
     padrao_area_trabalho = f"""Area de Trabalho\\\\([^\\\\]+)"""
