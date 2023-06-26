@@ -77,14 +77,24 @@ def gerar():
         )
     """
     )
+    
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS diretorios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            diretorio_raiz TEXT,
+            diretorio_default TEXT,
+            caminho_padrao TEXT,
+            pasta_padrao_projeto TEXT,
+        )
+    """
+    )
 
     diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
     diretorio_default = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/Modelos de Arquivos"""
     caminho_padrao = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/GRD E LD padrao"""
     pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
     diretorios = {
         "1": "diretorio_raiz",
         "2": "diretorio_default",
