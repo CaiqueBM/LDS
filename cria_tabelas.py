@@ -3,9 +3,6 @@ import os
 import re
 import datetime
 
-diretorio = r"C:\Users\lanch\Desktop\Projeto"
-
-
 def gerar():
     # Define o diretório raiz
 
@@ -81,8 +78,34 @@ def gerar():
     """
     )
 
+    diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
+    diretorio_default = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/Modelos de Arquivos"""
+    caminho_padrao = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/GRD E LD padrao"""
+    pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    diretorios = {
+        "1": "diretorio_raiz",
+        "2": "diretorio_default",
+        "3": "caminho_padrao",
+        "4": "pasta_padrao_projeto",
+    }
+    for n in range(1, 5):
+        descricao = diretorios[str(n)]
+        diretorio = eval(descricao)
+
+        c.execute(
+            "INSERT INTO diretorios (descricao, diretorio) VALUES (?, ?)",
+            (descricao, diretorio),
+        )
+        conn.commit()
+    conn.close()
+
     padrao_projetos = f"""Arquivos do Projeto\\\\([^\\\\]+)"""
     padrao_area_trabalho = f"""Area de Trabalho\\\\([^\\\\]+)"""
+    diretorio = r"C:\Users\lanch\Desktop\Projeto"
+    diretorio_status = ""
 
     # Percorre recursivamente todos os diretórios a partir do diretório raiz
     for raiz, _, arquivos in os.walk(diretorio):

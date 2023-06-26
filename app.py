@@ -31,8 +31,6 @@ app = Flask(__name__)
 gerar()
 df_tabela = pd.DataFrame
 df_arquivo = pd.DataFrame(columns=["nome", "projeto", "titulo"])
-diretorio_raiz = r"C:\Users\lanch\Desktop\Projeto"
-diretorio_default = r"C:\\Users\\lanch\\Desktop\\Default"
 atualizar = "intermedio"
 pasta_destino = ""
 linha_selecionada = ""
@@ -45,8 +43,10 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-caminho_padrao = r"C:\Users\lanch\Desktop\modeloGRD"
-pasta_padrao_projeto = r"C:\Users\lanch\Desktop\1 - Padrao"
+diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
+diretorio_default = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/Modelos de Arquivos"""
+caminho_padrao = r"""/media/hdfs/Engenharia/Projetos\Sistema LDS/GRD E LD padrao"""
+pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
 
 app.static_folder = "static"
 app.secret_key = "2@2"
