@@ -8289,5 +8289,6 @@ myenv/Lib/site-packages/wtforms/widgets/__init__.py
 myenv/Lib/site-packages/wtforms/widgets/core.py
 myenv/Lib/site-packages/wtforms/widgets/__pycache__/__init__.cpython-311.pyc
 myenv/Lib/site-packages/wtforms/widgets/__pycache__/core.cpython-311.pyc
+venv/
 database.db
 database.db
