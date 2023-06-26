@@ -85,7 +85,7 @@ def gerar():
             diretorio_raiz TEXT,
             diretorio_default TEXT,
             caminho_padrao TEXT,
-            pasta_padrao_projeto TEXT,
+            pasta_padrao_projeto TEXT
         )
     """
     )
