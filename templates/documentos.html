@@ -37,6 +37,7 @@
     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
         Criar novo arquivo
     </button>
+    <input type="hidden" name="projeto" value="{{ projeto }}">
 
     <!-- Popup -->
     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -50,6 +51,8 @@
                 </div>
                 <div class="modal-body">
                     <form id="criarArquivoForm" method="POST" action="{{ url_for('criar_arquivo') }}">
+                        <input type="hidden" name="projeto" value="{{ projeto }}">
+
                         <div class="form-group row">
                             <div class="col-9">
                                 <label for="titulo">Titulo:</label>

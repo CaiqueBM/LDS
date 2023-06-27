@@ -1361,7 +1361,7 @@ def gerar_grd():
 
 
 @app.route("/criar_arquivo", methods=["POST"])
-def criar_arquivo(projeto):
+def criar_arquivo():
     if "username" in session:
         global df_tabela
         global diretorio_raiz
@@ -1375,7 +1375,8 @@ def criar_arquivo(projeto):
 
         projeto_recebido = request.form["projeto"]
         print("---------------- CRIAR ARQUIVO ------------------------")
-        print("projeto_recebido: ", projeto_recebido)
+        print("projeto_recebido:", projeto_recebido)
+        print(projeto_recebido)
         username = session["username"]
         disciplina = request.form["disc"]
         sub = request.form["sub"]
@@ -1413,7 +1414,7 @@ def criar_arquivo(projeto):
         result = df_projeto.loc[df_projeto["projeto"] == projeto]
         print(result)
         # abreviacao_empresa = result["abreviacao"].values[0]
-        abreviacao_empresa = result.loc[1, "abreviacao"]
+        abreviacao_empresa = result.loc[0, "abreviacao"]
         print("Abreviacao: ", result)
 
         arquivo_existente = request.form["arquivo_existente"]
