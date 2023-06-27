@@ -1567,11 +1567,8 @@ def criar_projeto():
         # adicionar o nome do projeto, a abreviacao e a descricao do projeto
 
         conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        c.execute(
-            "INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES (?, ?, ?)",
-            (nome_projeto, abreviacao_empresa, descricao_projeto),
-        )
+        query = f"""INSERT INTO arquivos (projeto, abreviacao, descricao) VALUES ('{nome_projeto}', '{abreviacao_empresa}', '{descricao_projeto}')"""
+        c.execute(query)
         conn.commit()
         conn.close()
 
