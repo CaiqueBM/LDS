@@ -783,7 +783,7 @@ def renomear_pasta():
         print("-----------------------------------------------")
 
         caminho_projeto = re.search(
-            r"(?<=).*?(?=\/Arquivos\ do\ Projeto))", caminho_projeto_df[0]
+            r"(?<=).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         caminho_projeto = caminho_projeto.group(0)
 
