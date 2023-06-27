@@ -45,12 +45,16 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = r"""\media\hdfs\Engenharia\Projetos"""
-diretorio_default = (
-    r"""\media\hdfs\Engenharia\Projetos\Sistema LDS\Modelos de Arquivos"""
+diretorio_raiz = os.path.join("media", "hdfs", "Engenharia", "Projetos")
+diretorio_default = os.path.join(
+    "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "Modelos de Arquivos"
 )
-caminho_padrao = r"""\media\hdfs\Engenharia\Projetos\Sistema LDS\GRD E LD padrao"""
-pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
+caminho_padrao = os.path.join(
+    "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "GRD E LD padrao"
+)
+pasta_padrao_projeto = os.path.join(
+    "media", "hdfs", "Engenharia", "Projetos", "0000 - Novo Projeto"
+)
 
 
 @app.route("/")
