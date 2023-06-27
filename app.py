@@ -1361,13 +1361,17 @@ def gerar_grd():
 
 
 @app.route("/criar_arquivo", methods=["POST"])
-def criar_arquivo():
+def criar_arquivo(projeto):
     if "username" in session:
         global df_tabela
         global diretorio_raiz
         global diretorio_default
         global df_projeto
         global df_arquivo
+
+        print("-------------------------------------------")
+        print(projeto)
+        print("-------------------------------------------")
 
         projeto_recebido = request.form["projeto"]
         print("---------------- CRIAR ARQUIVO ------------------------")
@@ -1396,7 +1400,7 @@ def criar_arquivo():
         pattern = re.compile(rf".*{re.escape(projeto_recebido)}.*", re.IGNORECASE)
 
         # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        projeto = [f for f in folders if re.match(pattern, f)]
+        proj_prox = [f for f in folders if re.match(pattern, f)]
 
         # ---------------------Buscar abreviacao da empresa-------------------
 
@@ -1406,7 +1410,7 @@ def criar_arquivo():
         df_projeto = pd.read_sql_query(query, conn)
         print("---------------------- df_projeto ---------------------")
         print(df_projeto)
-        result = df_projeto.loc[df_projeto["projeto"] == projeto_recebido]
+        result = df_projeto.loc[df_projeto["projeto"] == projeto]
         print(result)
         # abreviacao_empresa = result["abreviacao"].values[0]
         abreviacao_empresa = result.loc[1, "abreviacao"]
@@ -1416,7 +1420,7 @@ def criar_arquivo():
         name, extension = os.path.splitext(arquivo_existente)
 
         # --------------- Sequencia dos arquivos ---------------------
-        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
+        caminho_projeto = os.path.join(diretorio_raiz, proj_prox[0])
         df_teste = pd.DataFrame(columns=["nome", "projeto"])
 
         # ------------------- Buscar os dados no CSV ---------------------
@@ -1498,7 +1502,7 @@ def criar_arquivo():
         shutil.copyfile(caminho_origem, caminho_destino)
 
         projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
-        projeto_arquivo = projeto_arquivo.group(1) if projeto else None
+        projeto_arquivo = projeto_arquivo.group(1) if proj_prox else None
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
@@ -1516,7 +1520,7 @@ def criar_arquivo():
 
         c.execute(
             "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
-            (nome_arquivo, projeto[0], titulo),
+            (nome_arquivo, proj_prox[0], titulo),
         )
 
         c.execute(
