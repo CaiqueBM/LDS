@@ -1406,7 +1406,7 @@ def criar_arquivo():
         df_projeto = pd.read_sql_query(query, conn)
         print("projeto[0]: ", projeto[0])
         print("df_projeto: ", df_projeto)
-        result = df_projeto[df_projeto["projeto"] == projeto[0]]
+        result = df_projeto[df_projeto["projeto"] == projeto_recebido]
         print(result)
         abreviacao_empresa = result["abreviacao"].iloc[0]
         descricao_empresa = result["descricao"].iloc[0]
@@ -1575,7 +1575,7 @@ def criar_projeto():
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
-        query = f"""INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES ('{nome_projeto}', '{abreviacao_empresa}', '{descricao_projeto}')"""
+        query = f"""INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES ('{nome_projeto_inicial}', '{abreviacao_empresa}', '{descricao_projeto}')"""
         c.execute(query)
         conn.commit()
         conn.close()
