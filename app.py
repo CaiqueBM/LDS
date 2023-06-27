@@ -26,7 +26,9 @@ import xlwings as xw
 import ast
 
 app = Flask(__name__)
-
+app.static_folder = "static"
+app.secret_key = "2@2"
+bootstrap = Bootstrap(app)
 
 gerar()
 df_tabela = pd.DataFrame
@@ -43,14 +45,12 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = r"""\media\hdfs\Engenharia\Projetos"""
+diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
 diretorio_default = r"""\\media\\hdfs\\Engenharia\\Projetos\\Sistema LDS\\Modelos de Arquivos"""
 caminho_padrao = r"""\media\hdfs\Engenharia\Projetos\Sistema LDS\GRD E LD padrao"""
 pasta_padrao_projeto = r"""\media\hdfs\Engenharia\Projetos\0000 - Novo Projeto"""
 
-app.static_folder = "static"
-app.secret_key = "2@2"
-bootstrap = Bootstrap(app)
+
 
 
 @app.route("/")
