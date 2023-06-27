@@ -1404,8 +1404,8 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
-        print("projeto[0]: ", projeto[0])
-        print("df_projeto: ", df_projeto)
+        print("---------------------- df_projeto ---------------------")
+        print(df_projeto)
         result = df_projeto[df_projeto["projeto"] == projeto_recebido]
         print(result)
         abreviacao_empresa = result["abreviacao"].iloc[0]
