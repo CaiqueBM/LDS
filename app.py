@@ -544,7 +544,7 @@ def atualizar_status():
 
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
-                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
 
@@ -620,7 +620,6 @@ def atualizar_status():
                     )
                     conn.commit()
 
-                    conn.commit()
                     shutil.move(caminho_projeto[i], pasta_destino)
 
                 conn.close()
