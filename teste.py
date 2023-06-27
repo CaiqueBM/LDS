@@ -26,9 +26,7 @@ import xlwings as xw
 import ast
 
 app = Flask(__name__)
-app.static_folder = "static"
-app.secret_key = "2@2"
-bootstrap = Bootstrap(app)
+
 
 gerar()
 df_tabela = pd.DataFrame
@@ -45,12 +43,15 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
-diretorio_default = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/Modelos de Arquivos"""
-caminho_padrao = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/GRD E LD padrao"""
-pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
 
+diretorio_raiz = r"""Z:\Projetos"""
+diretorio_default = r"""C:\\Users\\lanch\\Desktop\\Default"""
+caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
+pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
 
+app.static_folder = "static"
+app.secret_key = "2@2"
+bootstrap = Bootstrap(app)
 
 
 @app.route("/")
@@ -222,6 +223,17 @@ def user_projetos(projeto):
         )
 
 
+def extrair_numero_pasta(nome_pasta):
+    partes = nome_pasta.split()
+    if partes:
+        numero = partes[0]
+        try:
+            return int(numero)
+        except ValueError:
+            pass
+    return float("inf")  # Retorna infinito para pastas sem número
+
+
 @app.route("/projetos", methods=["GET"])
 def projetos():
     if "username" in session:
@@ -231,7 +243,8 @@ def projetos():
         global diretorio_raiz
         df_link = pd.DataFrame(columns=["projeto"])
 
-        for pasta in os.listdir(diretorio_raiz):
+        pastas = sorted(os.listdir(diretorio_raiz), key=extrair_numero_pasta)
+        for pasta in pastas:
             if os.path.isdir(os.path.join(diretorio_raiz, pasta)):
                 caminho_projeto = os.path.join(diretorio_raiz, pasta)
                 projeto_arquivo = re.search(
@@ -251,6 +264,8 @@ def projetos():
             + df_link["projeto"]
             + "</a>"
         )
+
+        df_link = df_link.sort_index(ascending=False)
 
         # Renderiza a página "projetos.html" e passa os dados da tabela "arquivos" para a variável "tabela"
         tabela = df_link.to_html(
@@ -1633,14 +1648,24 @@ def configuracoes():
             diretorio_padrao = request.form.get("diretorio_padrao", None)
             pasta_projeto = request.form.get("pasta_projeto", None)
 
+            conn = sqlite3.connect("database.db")
+            c = conn.cursor()
+
             if diretorio_projetos is not None:
                 diretorio_raiz = diretorio_projetos
+                query = f"""UPDATE diretorios SET diretorio = '{diretorio_raiz}' WHERE descricao = '{"diretorio_raiz"}'"""
             if diretorio_grd is not None:
                 caminho_padrao = diretorio_grd
+                query = f"""UPDATE diretorios SET diretorio = '{caminho_padrao}' WHERE descricao = '{"caminho_padrao"}'"""
             if diretorio_padrao is not None:
                 diretorio_default = diretorio_padrao
+                query = f"""UPDATE diretorios SET diretorio = '{diretorio_default}' WHERE descricao = '{"diretorio_default"}'"""
             if pasta_projeto is not None:
                 pasta_padrao_projeto = pasta_projeto
+                query = f"""UPDATE diretorios SET diretorio = '{pasta_padrao_projeto}' WHERE descricao = '{"pasta_padrao_projeto"}'"""
+            c.execute(query)
+            conn.commit()
+            conn.close()
 
         elif config_valor == "config_usuario":
             usuario = request.form.get("usuario", None)
