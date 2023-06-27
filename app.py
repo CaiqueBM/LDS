@@ -1369,10 +1369,6 @@ def criar_arquivo():
         global df_projeto
         global df_arquivo
 
-        print("-------------------------------------------")
-        print(projeto)
-        print("-------------------------------------------")
-
         projeto_recebido = request.form["projeto"]
         print("---------------- CRIAR ARQUIVO ------------------------")
         print("projeto_recebido:", projeto_recebido)
