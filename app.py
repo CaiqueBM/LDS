@@ -1579,6 +1579,39 @@ def criar_projeto():
         )
 
 
+@app.route("/configuracoes", methods=["GET", "POST"])
+def configuracoes():
+    global diretorio_raiz
+    global caminho_padrao
+    global diretorio_default
+    global pasta_padrao_projeto
+
+    if request.method == "POST":
+        config_valor = request.form.get("config_valor", None)
+
+        if config_valor == "config_diretorios":
+            diretorio_projetos = request.form.get("diretorio_projetos", None)
+            diretorio_grd = request.form.get("diretorio_grd", None)
+            diretorio_padrao = request.form.get("diretorio_padrao", None)
+            pasta_projeto = request.form.get("pasta_projeto", None)
+
+            if diretorio_projetos is not None:
+                diretorio_raiz = diretorio_projetos
+            if diretorio_grd is not None:
+                caminho_padrao = diretorio_grd
+            if diretorio_padrao is not None:
+                diretorio_default = diretorio_padrao
+            if pasta_projeto is not None:
+                pasta_padrao_projeto = pasta_projeto
+
+        elif config_valor == "config_usuario":
+            usuario = request.form.get("usuario", None)
+            senha = request.form.get("senha", None)
+
+    # Renderizar o template da página de configurações
+    return render_template("configuracoes.html")
+
+
 # --------------------------------------------------------------------------------
 
 if __name__ == "__main__":
