@@ -1403,6 +1403,7 @@ def criar_arquivo():
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
         result = df_projeto[df_projeto["projeto"] == projeto[0]]
+        print(result)
         abreviacao_empresa = result["abreviacao"].iloc[0]
         descricao_empresa = result["descricao"].iloc[0]
 
@@ -1544,8 +1545,11 @@ def criar_projeto():
         global pasta_padrao_projeto
 
         nome_projeto_inicial = request.form["nome_projeto"]
+        print(nome_projeto_inicial)
         abreviacao_empresa = request.form["abreviacao_empresa"]
+        print(abreviacao_empresa)
         descricao_projeto = request.form["descricao_projeto"]
+        print(descricao_projeto)
 
         projetos = os.listdir(diretorio_raiz)
         maior_numero = 0
