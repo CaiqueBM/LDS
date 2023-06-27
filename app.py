@@ -544,7 +544,9 @@ def atualizar_status():
 
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
-                        r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        # r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)",
+                        caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
 
