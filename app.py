@@ -1407,7 +1407,9 @@ def criar_arquivo():
         df_projeto = pd.read_sql_query(query, conn)
         print("---------------------- df_projeto ---------------------")
         print(df_projeto)
-        result = df_projeto.loc[df_projeto["projeto"] == projeto]
+        proj_espaco = projeto_recebido.lstrip()
+
+        result = df_projeto.loc[df_projeto["projeto"] == proj_espaco]
         print(result)
         # abreviacao_empresa = result["abreviacao"].values[0]
         abreviacao_empresa = result.loc[0, "abreviacao"]
@@ -1554,6 +1556,7 @@ def criar_projeto():
 
         nome_projeto_inicial = request.form["nome_projeto"]
         print("nome_projeto_inicial: ", nome_projeto_inicial)
+        print(nome_projeto_inicial)
         abreviacao_empresa = request.form["abreviacao_empresa"]
         print("abreviacao_empresa: ", abreviacao_empresa)
         descricao_projeto = request.form["descricao_projeto"]
