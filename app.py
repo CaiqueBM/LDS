@@ -543,6 +543,10 @@ def atualizar_status():
                 linha_selecionada = []
 
                 if caminho_projeto is not None:
+                    print("-----------------------------------------------")
+                    print(caminho_projeto[0])
+                    print("-----------------------------------------------")
+
                     projeto_arquivo = re.search(
                         # r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
                         r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)",
