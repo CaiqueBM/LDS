@@ -1370,6 +1370,8 @@ def criar_arquivo():
         global df_arquivo
 
         projeto_recebido = request.form["projeto"]
+        print("---------------- CRIAR ARQUIVO ------------------------")
+        print("projeto_recebido: ", projeto_recebido)
         username = session["username"]
         disciplina = request.form["disc"]
         sub = request.form["sub"]
@@ -1402,6 +1404,8 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        print("projeto[0]: ", projeto[0])
+        print("df_projeto: ", df_projeto)
         result = df_projeto[df_projeto["projeto"] == projeto[0]]
         print(result)
         abreviacao_empresa = result["abreviacao"].iloc[0]
@@ -1544,12 +1548,14 @@ def criar_projeto():
         global df_projeto
         global pasta_padrao_projeto
 
+        print("---------------- CRIAR PROJETO ------------------------")
+
         nome_projeto_inicial = request.form["nome_projeto"]
-        print(nome_projeto_inicial)
+        print("nome_projeto_inicial: ", nome_projeto_inicial)
         abreviacao_empresa = request.form["abreviacao_empresa"]
-        print(abreviacao_empresa)
+        print("abreviacao_empresa: ", abreviacao_empresa)
         descricao_projeto = request.form["descricao_projeto"]
-        print(descricao_projeto)
+        print("descricao_projeto: ", descricao_projeto)
 
         projetos = os.listdir(diretorio_raiz)
         maior_numero = 0
@@ -1562,6 +1568,7 @@ def criar_projeto():
         numero_projeto = maior_numero + 1
         nome_projeto = str(numero_projeto) + " - " + nome_projeto_inicial
 
+        print("nome_projeto: ", nome_projeto)
         pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto)
 
         # adicionar o nome do projeto, a abreviacao e a descricao do projeto
