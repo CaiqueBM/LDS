@@ -45,12 +45,12 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
-diretorio_default = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/Modelos de Arquivos"""
-caminho_padrao = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/GRD E LD padrao"""
+diretorio_raiz = r"""\media\hdfs\Engenharia\Projetos"""
+diretorio_default = (
+    r"""\media\hdfs\Engenharia\Projetos\Sistema LDS\Modelos de Arquivos"""
+)
+caminho_padrao = r"""\media\hdfs\Engenharia\Projetos\Sistema LDS\GRD E LD padrao"""
 pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
-
-
 
 
 @app.route("/")
@@ -1573,81 +1573,6 @@ def criar_projeto():
                 "projetos",
             )
         )
-
-
-# ----------------------------- REVISAO ---------------------------------------------------
-
-
-@app.route("/revisao", methods=["GET", "POST"])
-def upload_files():
-    if "username" in session:
-        global diretorio_raiz
-
-        projeto = request.form["projeto"]
-
-        conn = sqlite3.connect("database.db")
-        query = "SELECT * FROM arquivos"
-        df_renomear = pd.read_sql_query(query, conn)
-        conn.close()
-
-        caminho_projeto = df_renomear.iloc[0]["caminho"]
-
-        projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
-        projeto_arquivo = projeto_arquivo.group(0)
-
-        pasta_revisao = os.path.join(
-            diretorio_raiz, projeto_arquivo, "Arquivos do Projeto", "Para Revisao"
-        )
-
-        files = request.files.getlist("files[]")
-        for file in files:
-            filename = file.filename
-            file.save(os.path.join(pasta_revisao, filename))
-
-        # Guardar novamente na tabela SQL com caminho correto
-
-        return redirect(
-            url_for(
-                "user_projetos",
-                projeto=projeto,
-            )
-        )
-
-
-# --------------------------------------------------------------------------------
-
-
-@app.route("/configuracoes", methods=["GET", "POST"])
-def configuracoes():
-    global diretorio_raiz
-    global caminho_padrao
-    global diretorio_default
-    global pasta_padrao_projeto
-
-    if request.method == "POST":
-        config_valor = request.form.get("config_valor", None)
-
-        if config_valor == "config_diretorios":
-            diretorio_projetos = request.form.get("diretorio_projetos", None)
-            diretorio_grd = request.form.get("diretorio_grd", None)
-            diretorio_padrao = request.form.get("diretorio_padrao", None)
-            pasta_projeto = request.form.get("pasta_projeto", None)
-
-            if diretorio_projetos is not None:
-                diretorio_raiz = diretorio_projetos
-            if diretorio_grd is not None:
-                caminho_padrao = diretorio_grd
-            if diretorio_padrao is not None:
-                diretorio_default = diretorio_padrao
-            if pasta_projeto is not None:
-                pasta_padrao_projeto = pasta_projeto
-
-        elif config_valor == "config_usuario":
-            usuario = request.form.get("usuario", None)
-            senha = request.form.get("senha", None)
-
-    # Renderizar o template da página de configurações
-    return render_template("configuracoes.html")
 
 
 # --------------------------------------------------------------------------------
