@@ -589,9 +589,13 @@ def atualizar_status():
                 linha_selecionada = []
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
-                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)",
+                        caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
+                    print("-----------------------------------------------")
+                    print("projeto_arquivo:", projeto_arquivo)
+                    print("-----------------------------------------------")
 
                 pasta_destino = os.path.join(
                     diretorio_raiz,
