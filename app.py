@@ -772,20 +772,42 @@ def renomear_pasta():
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
         df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
+        status_atual = df_selecionado["status"].values.tolist()
+        id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
+        print("-----------------------------------------------")
+        print("caminho_projeto:", caminho_projeto_df[0])
+        print("-----------------------------------------------")
+
+        caminho_projeto = re.search(r"(?<=).*?(?=\/Arquivos\ do\ Projeto))", caminho_projeto_df[0])
+        caminho_projeto = caminho_projeto.group(0)
+
+        print("-----------------------------------------------")
+        print("caminho_projeto_novo:", caminho_projeto)
+        print("-----------------------------------------------")
+
+        projeto_arquivo = re.search(r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto)
+        projeto_arquivo = projeto_arquivo.group(0)
+
+        print("-----------------------------------------------")
+        print("projeto_arquivo:", projeto_arquivo)
+        print("-----------------------------------------------")
+
         # -------------------- Buscar nome do projeto na pasta --------------------
-        folders = [
+        """folders = [
             f
             for f in os.listdir(diretorio_raiz)
             if os.path.isdir(os.path.join(diretorio_raiz, f))
-        ]
-        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
-        pattern = re.compile(rf".*{re.escape(projeto)}.*", re.IGNORECASE)
-        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        projeto = [f for f in folders if re.match(pattern, f)]
+        ]"""
+            # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
+            pattern = re.compile(rf".*{re.escape(projeto)}.*", re.IGNORECASE)
+            # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
+            projeto = [f for f in folders if re.match(pattern, f)]
 
-        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
+        #caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
@@ -798,8 +820,7 @@ def renomear_pasta():
         df_renomear = pd.read_sql_query(query, conn)
         conn.close()
 
-        projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
-        projeto_arquivo = projeto_arquivo.group(0)
+        
 
         caminho_atual = os.path.join(
             diretorio_raiz,
@@ -818,8 +839,6 @@ def renomear_pasta():
         )
 
         os.makedirs(novo_caminho, exist_ok=True)
-        # shutil.move(caminho_atual, novo_caminho)
-        # os.rename(caminho_atual, novo_caminho)
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
