@@ -1406,10 +1406,11 @@ def criar_arquivo():
         df_projeto = pd.read_sql_query(query, conn)
         print("---------------------- df_projeto ---------------------")
         print(df_projeto)
-        result = df_projeto[df_projeto["projeto"] == projeto_recebido]
+        result = df_projeto.loc[df_projeto["projeto"] == projeto_recebido]
         print(result)
-        abreviacao_empresa = result["abreviacao"].iloc[0]
-        descricao_empresa = result["descricao"].iloc[0]
+        # abreviacao_empresa = result["abreviacao"].values[0]
+        abreviacao_empresa = result.loc[0, "abreviacao"]
+        print("Abreviacao: ", result)
 
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
