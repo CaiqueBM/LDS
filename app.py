@@ -908,6 +908,11 @@ def gerar_grd():
         aprovado = request.form["aprovado"]
         autorizado = request.form["autorizado"]
 
+        print("----------------------------------------------")
+        print("PROJETO ATUAL:", projeto_atual)
+        print(projeto_atual)
+        print("----------------------------------------------")
+
         # -------------------- Buscar nome do projeto na pasta --------------------
         try:
             projeto = ast.literal_eval(projeto_atual)[0]
@@ -959,8 +964,6 @@ def gerar_grd():
         print("ABREVIACAO EMPRESA:", abreviacao_empresa)
         print(abreviacao_empresa)
         print("----------------------------------------------")
-
-
 
         # ------------------- CAMINHOS PADROES -------------------------
 
