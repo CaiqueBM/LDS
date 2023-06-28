@@ -952,20 +952,6 @@ def gerar_grd():
         print("-----------------------------------------------")
 
         # -------------------- Buscar nome do projeto na pasta --------------------
-        """try:
-            projeto = ast.literal_eval(projeto_atual)[0]
-        except ValueError:
-            projeto = projeto_atual
-
-        print("----------------------------------------------")
-        print("PROJETO:", projeto)
-        print(projeto)
-        print("----------------------------------------------")
-
-        partes = projeto.split("-", 1)
-        projeto_recebido = partes[1].strip()
-
-        caminho_projeto = os.path.join(diretorio_raiz, projeto)"""
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
@@ -1033,7 +1019,7 @@ def gerar_grd():
         if pasta_GRD_anterior is None:
             # Criaçao de uma nova GRD, primeira entrega
             # Abrir o arquivo Excel
-            app = xw.App(visible=False)
+            app = xw.App()
             workbook = app.books.open(caminho_ld_padrao)  # LD vazia para preencher
             # Obter a planilha desejada
             planilha = workbook.sheets["F. Rosto"]
