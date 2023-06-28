@@ -913,6 +913,12 @@ def gerar_grd():
         print(projeto_atual)
         print("----------------------------------------------")
 
+        projeto = projeto_atual.strip()
+        print("----------------------------------------------")
+        print("PROJETO NOVO:", projeto)
+        print(projeto)
+        print("----------------------------------------------")
+
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
@@ -977,7 +983,7 @@ def gerar_grd():
         print("DF PROJETO:")
         print(df_projeto)
         print("----------------------------------------------")
-        result_projeto = df_projeto[df_projeto["projeto"] == projeto_arquivo]
+        result_projeto = df_projeto[df_projeto["projeto"] == projeto]
         print("----------------------------------------------")
         print("RESULT_PROJETO")
         print(result_projeto)
@@ -994,6 +1000,13 @@ def gerar_grd():
 
         caminho_ld_padrao = os.path.join(caminho_padrao, "LD_padrao.xlsx")
         caminho_grd_padrao = os.path.join(caminho_padrao, "GRD_padrao.xlsx")
+
+        print("----------------------------------------------")
+        print("CAMINHO LD PADRAO:", caminho_ld_padrao)
+        print(caminho_ld_padrao)
+        print("CAMINHO GRD PADRAO:", caminho_grd_padrao)
+        print(caminho_grd_padrao)
+        print("----------------------------------------------")
 
         pastas = []
         pasta_GRD_recente = None
