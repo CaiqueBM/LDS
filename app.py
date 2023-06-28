@@ -913,8 +913,40 @@ def gerar_grd():
         print(projeto_atual)
         print("----------------------------------------------")
 
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM arquivos"
+        df_tabela = pd.read_sql_query(query, conn)
+        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
+        status_atual = df_selecionado["status"].values.tolist()
+        id_documentos = df_selecionado["id"].values.tolist()
+        conn.close()
+
+        print("-----------------------------------------------")
+        print("caminho_projeto:", caminho_projeto_df[0])
+        print("-----------------------------------------------")
+
+        caminho_projeto = re.search(
+            r"(?<=).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+        )
+        caminho_projeto = caminho_projeto.group(0)
+
+        print("-----------------------------------------------")
+        print("caminho_projeto_novo:", caminho_projeto)
+        print("-----------------------------------------------")
+
+        projeto_arquivo = re.search(
+            r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+        )
+        projeto_arquivo = projeto_arquivo.group(0)
+
+        print("-----------------------------------------------")
+        print("projeto_arquivo:", projeto_arquivo)
+        print("-----------------------------------------------")
+
         # -------------------- Buscar nome do projeto na pasta --------------------
-        try:
+        """try:
             projeto = ast.literal_eval(projeto_atual)[0]
         except ValueError:
             projeto = projeto_atual
@@ -927,19 +959,12 @@ def gerar_grd():
         partes = projeto.split("-", 1)
         projeto_recebido = partes[1].strip()
 
-        caminho_projeto = os.path.join(diretorio_raiz, projeto)
+        caminho_projeto = os.path.join(diretorio_raiz, projeto)"""
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
 
         print("----------------------------------------------")
-        print("PROJETO RECEBIDO:", projeto_recebido)
-        print(projeto_recebido)
-        print("----------------------------------------------")
-
-        print("----------------------------------------------")
-        print("CAMINHO PROJETO:", caminho_projeto)
-        print(caminho_projeto)
         print("CAMINHO VERIFICADO:", caminho_verificado)
         print(caminho_verificado)
         print("----------------------------------------------")
@@ -952,7 +977,7 @@ def gerar_grd():
         print("DF PROJETO:")
         print(df_projeto)
         print("----------------------------------------------")
-        result_projeto = df_projeto[df_projeto["projeto"] == projeto]
+        result_projeto = df_projeto[df_projeto["projeto"] == projeto_arquivo]
         print("----------------------------------------------")
         print("RESULT_PROJETO")
         print(result_projeto)
