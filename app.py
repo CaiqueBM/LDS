@@ -914,6 +914,11 @@ def gerar_grd():
         except ValueError:
             projeto = projeto_atual
 
+        print("----------------------------------------------")
+        print("PROJETO:", projeto)
+        print(projeto)
+        print("----------------------------------------------")
+
         partes = projeto.split("-", 1)
         projeto_recebido = partes[1].strip()
 
@@ -922,13 +927,40 @@ def gerar_grd():
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
 
+        print("----------------------------------------------")
+        print("PROJETO RECEBIDO:", projeto_recebido)
+        print(projeto_recebido)
+        print("----------------------------------------------")
+
+        print("----------------------------------------------")
+        print("CAMINHO PROJETO:", caminho_projeto)
+        print(caminho_projeto)
+        print("CAMINHO VERIFICADO:", caminho_verificado)
+        print(caminho_verificado)
+        print("----------------------------------------------")
+
         # buscar abreviacao
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        print("----------------------------------------------")
+        print("DF PROJETO:")
+        print(df_projeto)
+        print("----------------------------------------------")
         result_projeto = df_projeto[df_projeto["projeto"] == projeto]
+        print("----------------------------------------------")
+        print("RESULT_PROJETO")
+        print(result_projeto)
+        print("----------------------------------------------")
         abreviacao_empresa = result_projeto["abreviacao"].iloc[0]
         descricao_projeto = result_projeto["descricao"].iloc[0]
+
+        print("----------------------------------------------")
+        print("ABREVIACAO EMPRESA:", abreviacao_empresa)
+        print(abreviacao_empresa)
+        print("----------------------------------------------")
+
+
 
         # ------------------- CAMINHOS PADROES -------------------------
 
