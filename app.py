@@ -951,7 +951,7 @@ def gerar_grd():
         print("-----------------------------------------------")
 
         projeto_arquivo = re.search(
-            r"(?<=\/Projeto\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+            r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         projeto_arquivo = projeto_arquivo.group(0)
 
