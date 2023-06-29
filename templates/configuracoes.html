@@ -41,11 +41,6 @@
         Atualizar Diretórios
     </button>
 
-    <!-- Botão para abrir o pop-up de adicionar/remover usuários -->
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#adicionarRemoverUsuariosModal">
-        Adicionar/Remover Usuários
-    </button>
-
     <!-- Pop-up de atualização de diretórios -->
     <div class="modal fade" id="atualizarDiretoriosModal" tabindex="-1" role="dialog"
         aria-labelledby="atualizarDiretoriosModalLabel" aria-hidden="true">
@@ -80,55 +75,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Pop-up de adicionar/remover usuários -->
-    <div class="modal fade" id="adicionarRemoverUsuariosModal" tabindex="-1" role="dialog"
-        aria-labelledby="adicionarRemoverUsuariosModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="adicionarRemoverUsuariosModalLabel">Adicionar/Remover Usuários</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <!-- Formulário para adicionar/remover usuários -->
-                    <form method="POST" action="{{ url_for('configuracoes') }}">
-                        <label for="usuarios">Usuários:</label>
-                        <input type="text" name="usuarios" value="{{ usuarios }}" placeholder="Usuário:" required>
-                        <label for="senha">Senha:</label>
-                        <div class="input-group">
-                            <input type="password" name="senha" id="senhaInput" placeholder="Senha" required>
-                            <div class="col-4">
-                                <label class="input-group-text" onclick="toggleSenhaVisibility()"
-                                    id="mostrarSenhaCheckbox">Mostrar senha</label>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary" name="config_valor"
-                            value="config_usuario">Salvar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function toggleSenhaVisibility() {
-            var senhaInput = document.getElementById("senhaInput");
-            var mostrarSenhaBtn = document.getElementById("mostrarSenhaBtn");
-
-            if (senhaInput.type === "password") {
-                senhaInput.type = "text";
-                mostrarSenhaBtn.textContent = "Ocultar";
-            } else {
-                senhaInput.type = "password";
-                mostrarSenhaBtn.textContent = "Mostrar";
-            }
-        }
-    </script>
-
 
     {% endblock %}
 </body>

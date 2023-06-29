@@ -14,6 +14,8 @@ import pandas as pd
 import datetime
 import sqlite3
 import csv
+from openpyxl import Workbook, load_workbook
+
 
 # from babkuppy import para_avaliacao
 from cria_tabelas import gerar
@@ -45,7 +47,7 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = os.path.join("/", "media", "hdfs", "Engenharia", "Projetos")
+"""diretorio_raiz = os.path.join("/", "media", "hdfs", "Engenharia", "Projetos")
 diretorio_default = os.path.join(
     "/", "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "Modelos de Arquivos"
 )
@@ -54,7 +56,13 @@ caminho_padrao = os.path.join(
 )
 pasta_padrao_projeto = os.path.join(
     "/", "media", "hdfs", "Engenharia", "Projetos", "0000 - Novo Projeto"
-)
+)"""
+
+diretorio_raiz = r"""C:\Users\lanch\Desktop\Projeto"""
+diretorio_default = r"""C:\Users\lanch\Desktop\Default"""
+caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
+pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
+
 
 
 @app.route("/")
@@ -943,7 +951,7 @@ def gerar_grd():
         print("-----------------------------------------------")
 
         projeto_arquivo = re.search(
-            r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+            r"(?<=\/Projeto\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         projeto_arquivo = projeto_arquivo.group(0)
 
@@ -1019,54 +1027,49 @@ def gerar_grd():
         if pasta_GRD_anterior is None:
             # Criaçao de uma nova GRD, primeira entrega
             # Abrir o arquivo Excel
-            app = xw.App()
-            workbook = app.books.open(caminho_ld_padrao)  # LD vazia para preencher
-            # Obter a planilha desejada
-            planilha = workbook.sheets["F. Rosto"]
+            workbook = load_workbook(caminho_ld_padrao)
+
+            # Obter a planilha desejada]
+            planilha = workbook["F. Rosto"]
 
             # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto_recebido  # projeto
-            shape_empresa = planilha.shapes["nome_empresa1"]
-            shape_empresa.text = projeto_recebido  # projeto
-            # Descriçao do projeto
-            planilha.range("A5").value = descricao_projeto  # descricao_projeto
+            planilha["J1"].value = projeto
 
+            """shape_empresa = planilha.shapes["nome_empresa1"]
+            shape_empresa.text = projeto  # projeto  ----------------"""
+            
+            # Descriçao do projeto
+            planilha["A5"].value = descricao_projeto
             # Logica para adicionar a primeira revisao
             X = 12  # linha 12 é a primeira a ser adicionada a revisao 0
-            planilha.range("A" + str(X)).value = "0"  # Revisao
+            planilha["A" + str(X)].value = "0"
             # Tipo (TE)
-            planilha.range("B" + str(X)).value = str(tipo)  # tipo TE
-            """if tipo in tipos:
-                tipo_te = tipos[tipo]
-                planilha.range("B" + str(X)).value = str(tipo)  # tipo TE"""
-
+            planilha["B" + str(X)].value = str(tipo)
             # Descriçao
-            planilha.range("C" + str(X)).value = str(descricao)  # descricao_projeto
-
+            planilha["C" + str(X)].value = str(descricao)
             # Feito por:
-            planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
-
+            planilha["J" + str(X)].value = abreviacao
             # Verificado
-            planilha.range("K" + str(X)).value = verificado  # quem verificou
+            planilha["K" + str(X)].value = verificado
             # Aprovado
-            planilha.range("L" + str(X)).value = aprovado  # quem aprovou
+            planilha["L" + str(X)].value = aprovado
             # Aut.
-            planilha.range("M" + str(X)).value = autorizado  # quem autorizou
+            planilha["M" + str(X)].value = autorizado
 
             # Data de envio
             now = datetime.datetime.now()
             data_envio = now.strftime("%d/%m/%Y")
-            planilha.range("N" + str(X)).value = data_envio  # data
+            planilha["N" + str(X)].value = data_envio
 
             nome_arq_ld = "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R0" + ".xlsx"
-            planilha.range("J6").value = nome_arq_ld  # nome da lista de documentos
+            planilha["J6"].value = nome_arq_ld
             nome_ld = os.path.join(novo_caminho, nome_arq_ld)
 
             # ------------------- Modificando a planilha LISTA -------------------
-            planilha = workbook.sheets["Lista"]
+            planilha = workbook["Lista"]
 
-            shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto_recebido  # projeto
+            """shape_empresa = planilha.shapes["nome_empresa2"]
+            shape_empresa.text = projeto  # projeto"""
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -1076,19 +1079,15 @@ def gerar_grd():
             conn.close()
 
             X = 11
-            planilha.range(
-                "B" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
-            planilha.range(
-                "C" + str(X)
-            ).value = "LISTA DE DOCUMENTOS"  # primeiro elemento
-            planilha.range("D" + str(X)).value = "0"  # Revisao
-            planilha.range("F" + str(X)).value = "0"  # Revisao
-            planilha.range("I" + str(X)).value = "LD"  # tipo TE
-            planilha.range("J" + str(X)).value = "2"  # paginas
-            planilha.range("H" + str(X)).value = "A4"  # formato
-            planilha.range("K" + str(X)).value = "100"
-            planilha.range("L" + str(X)).value = "=1/8*J11"
+            planilha["B" + str(X)].value = nome_arq_ld
+            planilha["C" + str(X)].value = "LISTA DE DOCUMENTOS"
+            planilha["D" + str(X)].value = "0"
+            planilha["F" + str(X)].value = "0"
+            planilha["I" + str(X)].value = "LD"
+            planilha["J" + str(X)].value = "2"
+            planilha["H" + str(X)].value = "A4"
+            planilha["K" + str(X)].value = "100"
+            planilha["L" + str(X)].value = "=1/8*J11"
 
             padrao = r"R\d+"
 
@@ -1101,12 +1100,13 @@ def gerar_grd():
             for nome in nome_arq:
                 result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
                 titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("B" + str(X)).value = nome
-                planilha.range("C" + str(X)).value = str(titulo)
+                planilha["B" + str(X)].value = nome
+                planilha["C" + str(X)].value = str(titulo)
+
                 resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
-                    planilha.range("D" + str(X)).value = revisao
+                    planilha["D" + str(X)].value = revisao
                 expressoes = [
                     "LC",
                     "LD",
@@ -1128,12 +1128,11 @@ def gerar_grd():
                 match = re.search(padrao, nome)
                 if match:
                     tipo_expressao = match.group(0)
-                    # novo_nome = nome_arq.replace(expressao_encontrada, "")
-                planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("F" + str(X)).value = "0"
-                planilha.range("J" + str(X)).value = "1"  # paginas
-                planilha.range("K" + str(X)).value = "100"
-                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
+                planilha["I" + str(X)].value = tipo_expressao
+                planilha["F" + str(X)].value = "0"
+                planilha["J" + str(X)].value = "1"
+                planilha["K" + str(X)].value = "100"
+                planilha["L" + str(X)].value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
@@ -1148,19 +1147,18 @@ def gerar_grd():
                 ]
 
                 if tipo_expressao in A1:
-                    planilha.range("H" + str(X)).value = "A1"
+                    planilha["H" + str(X)].value = "A1"
                 if tipo_expressao in A2:
-                    planilha.range("H" + str(X)).value = "A2"
+                    planilha["H" + str(X)].value = "A2"
                 if tipo_expressao in A3:
-                    planilha.range("H" + str(X)).value = "A3"
+                    planilha["H" + str(X)].value = "A3"
                 if tipo_expressao in A4:
-                    planilha.range("H" + str(X)).value = "A4"
+                    planilha["H" + str(X)].value = "A4"
                 X = X + 1
 
             workbook.save(nome_ld)
             # Fechar o arquivo Excel
             workbook.close()
-            app.quit()
 
             seq_grd = "01"
             nome_grd_parte = "GRD-ABS-" + abreviacao_empresa + "-0" + seq_grd + ".xlsx"
@@ -1201,51 +1199,38 @@ def gerar_grd():
                         )
 
             # Abrir o arquivo Excel
-            app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_anterior)
-
+            workbook = load_workbook(caminho_ld_anterior)
             # Obter a planilha desejada
-            planilha = workbook.sheets["F. Rosto"]
+            planilha = workbook["F. Rosto"]
 
-            planilha.range("J6").value = nome_arq_ld
+            planilha["J6"].value = nome_arq_ld
 
             # Logica para ler qual a ultima revisao
-            for row in planilha.range("A12:A31").options(ndim=2).value:
-                for cell in row:
-                    if cell is not None:
-                        ultima_revisao = int(cell)
-                        X = (
-                            planilha.range("A" + str(planilha.cells.last_cell.row))
-                            .end("up")
-                            .row
-                            + 1
-                        )  # Proxima linha em branco, adicionar os parametros
+            proxima_linha = None
+            for linha in range(12, 31 + 1):
+                if planilha.cell(row=linha, column=1).value is None:
+                    X = linha
+                    ultima_revisao = X - 13
+                    break
 
             # Buscar o nome de todos os arquivos a serem enviados na pagina
-            planilha.range("A" + str(X)).value = str(ultima_revisao + 1)  # Revisao
-            # Tipo (TE)
-            planilha.range("B" + str(X)).value = str(tipo)  # tipo TE
-            # Descriçao
-            planilha.range("C" + str(X)).value = str(descricao)  # descricao_projeto
-            # Feito por:
-            planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
-            # Verificado
-            planilha.range("K" + str(X)).value = verificado  # quem verificou
-            # Aprovado
-            planilha.range("L" + str(X)).value = aprovado  # quem aprovou
-            # Aut.
-            planilha.range("M" + str(X)).value = autorizado  # quem autorizou
+            planilha["A" + str(X)].value = str(ultima_revisao + 1) 
+            planilha["B" + str(X)].value = str(tipo)
+            planilha["C" + str(X)].value = str(descricao)
+            planilha["J" + str(X)].value = abreviacao
+            planilha["K" + str(X)].value = verificado
+            planilha["L" + str(X)].value = aprovado
+            planilha["M" + str(X)].value = autorizado
 
             # Data de envio
             now = datetime.datetime.now()
             data_envio = now.strftime("%d/%m/%Y")
-            planilha.range("N" + str(X)).value = data_envio  # data
+            planilha["N" + str(X)].value = data_envio
 
             nome_ld = os.path.join(caminho_pasta, nome_arq_ld)
 
             # ------------------- Modificando a planilha LISTA -------------------
-
-            planilha = workbook.sheets["Lista"]
+            planilha = workbook["Lista"]
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -1257,38 +1242,33 @@ def gerar_grd():
             padrao = r"R\d+"
 
             X = 11
-
-            planilha.range(
-                "B" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
-
-            planilha.range("F" + str(X)).value = str(nova_revisao_ld)  # Revisao
+            
+            planilha["B" + str(X)].value = nome_arq_ld
+            planilha["F" + str(X)].value = str(nova_revisao_ld)
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
             df_arquivo = pd.read_sql_query(query, conn)
 
-            # Logica para ler qual a ultima revisao
-            for row in planilha.range("B12:B31").options(ndim=2).value:
-                for cell in row:
-                    if cell is not None:
-                        X = (
-                            planilha.range("A" + str(planilha.cells.last_cell.row))
-                            .end("up")
-                            .row
-                            + 12
-                        )  # Proxima linha em branco, adicionar os parametros
 
+            proxima_linha = None
+            for linha in range(12, 31 + 1):
+                if planilha.cell(row=linha, column=2).value is None:
+                    X = linha
+                    break
+
+            # Logica para ler qual a ultima revisao
             for nome in nome_arq:
                 result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
                 titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("B" + str(X)).value = nome
-                planilha.range("C" + str(X)).value = str(titulo)
-                planilha.range("D" + str(X)).value = "0"
+                planilha["B" + str(X)].value = nome
+                planilha["C" + str(X)].value = str(titulo)
+                planilha["D" + str(X)].value = "0"
+
                 resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
-                    planilha.range("F" + str(X)).value = revisao
+                    planilha["F" + str(X)].value = revisao
                 expressoes = [
                     "LC",
                     "LE",
@@ -1309,10 +1289,10 @@ def gerar_grd():
                 match = re.search(padrao, nome)
                 if match:
                     tipo_expressao = match.group(0)
-                planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("J" + str(X)).value = "1"
-                planilha.range("K" + str(X)).value = "100"
-                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
+                planilha["I" + str(X)].value = tipo_expressao
+                planilha["J" + str(X)].value = "1"
+                planilha["K" + str(X)].value = "100"
+                planilha["L" + str(X)].value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
@@ -1320,19 +1300,18 @@ def gerar_grd():
                 A4 = ["LC", "LE", "LI", "LM", "ET"]
 
                 if tipo_expressao in A1:
-                    planilha.range("H" + str(X)).value = "A1"
+                    planilha["H" + str(X)].value = "A1"
                 if tipo_expressao in A2:
-                    planilha.range("H" + str(X)).value = "A2"
+                    planilha["H" + str(X)].value = "A2"
                 if tipo_expressao in A3:
-                    planilha.range("H" + str(X)).value = "A3"
+                    planilha["H" + str(X)].value = "A3"
                 if tipo_expressao in A4:
-                    planilha.range("H" + str(X)).value = "A4"
+                    planilha["H" + str(X)].value = "A4"
                 X = X + 1
 
             workbook.save(nome_ld)
             # Fechar o arquivo Excel
             workbook.close()
-            app.quit()
 
             if pasta_GRD_anterior is not None:
                 for diretorio_atual, subdiretorios, arquivos in os.walk(
@@ -1365,34 +1344,29 @@ def gerar_grd():
                                 nome_grd = os.path.join(novo_caminho, nome_grd_parte)
 
         # ------------------------- GRD ------------------------------------
-        app = xw.App(visible=False)
-        workbook = app.books.open(caminho_grd_padrao)  # LD vazia para preencher
-        # Obter a planilha desejada
-        planilha = workbook.sheets["GRD"]
+        workbook = load_workbook(caminho_grd_padrao)
+        planilha = workbook["GRD"]
 
-        shape_empresa = planilha.shapes["nome_empresa3"]
-        shape_empresa.text = str(projeto_recebido)  # projeto
-
-        planilha.range("N7").value = data_envio  # data de envio
-
+        planilha["N7"].value = data_envio
         parte_num_grd = nome_grd.split("\\")
         numero_grd = (parte_num_grd[9].split("-")[3]).split(".")[0]
-
-        planilha.range("N10").value = numero_grd  # data de envio
+        planilha["N10"].value = numero_grd
 
         parte_split_ld = nome_arq_ld.split("_R", 1)
         nova_revisao = parte_split_ld[1].split(".")[0]
 
         X = 36
-        planilha.range("A" + str(X)).value = "01"  # primeiro elemento
-        planilha.range("H" + str(X)).value = nome_arq_ld  # nome da lista de documentos
-        planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
-        planilha.range("O" + str(X)).value = nova_revisao  # Revisao
-        planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-        planilha.range("Q" + str(X)).value = "A4"  # tipo TE
-        planilha.range("S" + str(X)).value = "1"  # Quantidade
-        planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"  # Revisao
-        planilha.range("V" + str(X)).value = "Original"  # Revisao
+
+        planilha["A" + str(X)].value = "01"
+        planilha["H" + str(X)].value = nome_arq_ld
+        planilha["K" + str(X)].value = "Lista de documentos"
+        planilha["O" + str(X)].value = nova_revisao
+        planilha["P" + str(X)].value = str(tipo)
+        planilha["Q" + str(X)].value = "A4"
+        planilha["S" + str(X)].value = "1"
+        planilha["T" + str(X)].value = "DOC.ELETRÔNICO"
+        planilha["V" + str(X)].value = "Original"
+
         padrao = r"R\d+"
         X = 37
 
@@ -1401,35 +1375,35 @@ def gerar_grd():
         df_arquivo = pd.read_sql_query(query, conn)
 
         for nome in nome_arq:
-            planilha.range("A" + str(X)).value = str(X - 36)  #  proximos elementos
+            planilha["A" + str(X)].value = str(X - 36)
             result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
             titulo = result_arquivo["titulo"].iloc[0]
-            planilha.range("H" + str(X)).value = nome
-            planilha.range("K" + str(X)).value = str(titulo)
+            planilha["H" + str(X)].value = nome
+            planilha["K" + str(X)].value = str(titulo)
+
             resultado = re.search(r"_R(\d+)", nome)
             if resultado:
                 revisao = resultado.group(1)
-                planilha.range("O" + str(X)).value = revisao
-            planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-            planilha.range("S" + str(X)).value = "1"
-
-            planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
-            planilha.range("V" + str(X)).value = "Original"
+                planilha["O" + str(X)].value = revisao
+            planilha["P" + str(X)].value = str(tipo)
+            planilha["S" + str(X)].value = "1"
+            planilha["T" + str(X)].value = "DOC.ELETRÔNICO"
+            planilha["V" + str(X)].value = "Original"
 
             if tipo_expressao in A1:
-                planilha.range("Q" + str(X)).value = "A1"
+                planilha["Q" + str(X)].value = "A1"
             if tipo_expressao in A2:
-                planilha.range("Q" + str(X)).value = "A2"
+                planilha["Q" + str(X)].value = "A2"
             if tipo_expressao in A3:
-                planilha.range("Q" + str(X)).value = "A3"
+                planilha["Q" + str(X)].value = "A3"
             if tipo_expressao in A4:
-                planilha.range("Q" + str(X)).value = "A4"
+                planilha["Q" + str(X)].value = "A4"
             X = X + 1
 
         workbook.save(nome_grd)
         # Fechar o arquivo Excel
         workbook.close()
-        app.quit()
+        #app.quit()
 
         pasta_GRD_recente = None
         pasta_GRD_anterior = None
@@ -1439,7 +1413,7 @@ def gerar_grd():
         return redirect(
             url_for(
                 "user_projetos",
-                projeto=projeto_recebido,
+                projeto=projeto,
             )
         )
 
