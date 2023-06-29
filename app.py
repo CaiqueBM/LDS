@@ -47,7 +47,7 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-"""diretorio_raiz = os.path.join("/", "media", "hdfs", "Engenharia", "Projetos")
+diretorio_raiz = os.path.join("/", "media", "hdfs", "Engenharia", "Projetos")
 diretorio_default = os.path.join(
     "/", "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "Modelos de Arquivos"
 )
@@ -56,12 +56,12 @@ caminho_padrao = os.path.join(
 )
 pasta_padrao_projeto = os.path.join(
     "/", "media", "hdfs", "Engenharia", "Projetos", "0000 - Novo Projeto"
-)"""
+)
 
-diretorio_raiz = r"""C:\Users\lanch\Desktop\Projeto"""
-diretorio_default = r"""C:\Users\lanch\Desktop\Default"""
-caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
-pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
+#diretorio_raiz = r"""C:\Users\lanch\Desktop\Projeto"""
+#diretorio_default = r"""C:\Users\lanch\Desktop\Default"""
+#caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
+#pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
 
 
 
