@@ -1347,10 +1347,26 @@ def gerar_grd():
         workbook = load_workbook(caminho_grd_padrao)
         planilha = workbook["GRD"]
 
+        print("----------------------------------------------")
+        print("NOME GRD:")
+        print(nome_grd)
+        print("----------------------------------------------")
+
         planilha["N7"].value = data_envio
-        parte_num_grd = nome_grd.split("\\")
+        parte_num_grd = nome_grd.split("/")
+
+        print("----------------------------------------------")
+        print("PARTE NUM GRD:")
+        print(parte_num_grd)
+        print("----------------------------------------------")
+
         numero_grd = (parte_num_grd[9].split("-")[3]).split(".")[0]
         planilha["N10"].value = numero_grd
+
+        print("----------------------------------------------")
+        print("NUMERO GRD:")
+        print(numero_grd)
+        print("----------------------------------------------")
 
         parte_split_ld = nome_arq_ld.split("_R", 1)
         nova_revisao = parte_split_ld[1].split(".")[0]
