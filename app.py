@@ -241,11 +241,20 @@ def projetos():
         login_time = session["login_time"]
         global df_tabela
         global diretorio_raiz
-        df_link = pd.DataFrame(columns=["projeto"])
+        df_link = pd.DataFrame(columns=["projeto", "numero"])
 
         for pasta in os.listdir(diretorio_raiz):
             if os.path.isdir(os.path.join(diretorio_raiz, pasta)):
+                if re.search(r"^(00+|[^0-9].*|[^0-9].*-)", pasta):
+                    continue
                 caminho_projeto = os.path.join(diretorio_raiz, pasta)
+
+
+                numero_personalizado = re.search(r"Projetos/(\d+)\s*-", caminho_projeto)
+                if numero_personalizado:
+                    numero_projeto = numero_personalizado.group(1)
+
+                #Buscar nome do projeto
                 projeto_arquivo = re.search(
                     r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto
                 )
@@ -253,7 +262,8 @@ def projetos():
                     projeto = projeto_arquivo.group(1)
                 else:
                     projeto = ""
-                df_link.loc[len(df_link)] = [projeto]
+                    numero_projeto = ""
+                df_link.loc[len(df_link)] = [projeto, numero_projeto]
 
         # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
         df_link["projeto"] = (
@@ -786,27 +796,15 @@ def renomear_pasta():
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
-        print("-----------------------------------------------")
-        print("caminho_projeto:", caminho_projeto_df[0])
-        print("-----------------------------------------------")
-
         caminho_projeto = re.search(
             r"(?<=).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         caminho_projeto = caminho_projeto.group(0)
 
-        print("-----------------------------------------------")
-        print("caminho_projeto_novo:", caminho_projeto)
-        print("-----------------------------------------------")
-
         projeto_arquivo = re.search(
             r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         projeto_arquivo = projeto_arquivo.group(0)
-
-        print("-----------------------------------------------")
-        print("projeto_arquivo:", projeto_arquivo)
-        print("-----------------------------------------------")
 
         # -------------------- Buscar nome do projeto na pasta --------------------
 
@@ -916,16 +914,7 @@ def gerar_grd():
         aprovado = request.form["aprovado"]
         autorizado = request.form["autorizado"]
 
-        print("----------------------------------------------")
-        print("PROJETO ATUAL:", projeto_atual)
-        print(projeto_atual)
-        print("----------------------------------------------")
-
         projeto = projeto_atual.strip()
-        print("----------------------------------------------")
-        print("PROJETO NOVO:", projeto)
-        print(projeto)
-        print("----------------------------------------------")
 
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
@@ -937,70 +926,35 @@ def gerar_grd():
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
-        print("-----------------------------------------------")
-        print("caminho_projeto:", caminho_projeto_df[0])
-        print("-----------------------------------------------")
-
         caminho_projeto = re.search(
             r"(?<=).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         caminho_projeto = caminho_projeto.group(0)
-
-        print("-----------------------------------------------")
-        print("caminho_projeto_novo:", caminho_projeto)
-        print("-----------------------------------------------")
 
         projeto_arquivo = re.search(
             r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
         )
         projeto_arquivo = projeto_arquivo.group(0)
 
-        print("-----------------------------------------------")
-        print("projeto_arquivo:", projeto_arquivo)
-        print("-----------------------------------------------")
-
         # -------------------- Buscar nome do projeto na pasta --------------------
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
 
-        print("----------------------------------------------")
-        print("CAMINHO VERIFICADO:", caminho_verificado)
-        print(caminho_verificado)
-        print("----------------------------------------------")
-
         # buscar abreviacao
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
-        print("----------------------------------------------")
-        print("DF PROJETO:")
-        print(df_projeto)
-        print("----------------------------------------------")
+
         result_projeto = df_projeto[df_projeto["projeto"] == projeto]
-        print("----------------------------------------------")
-        print("RESULT_PROJETO")
-        print(result_projeto)
-        print("----------------------------------------------")
+
         abreviacao_empresa = result_projeto["abreviacao"].iloc[0]
         descricao_projeto = result_projeto["descricao"].iloc[0]
-
-        print("----------------------------------------------")
-        print("ABREVIACAO EMPRESA:", abreviacao_empresa)
-        print(abreviacao_empresa)
-        print("----------------------------------------------")
 
         # ------------------- CAMINHOS PADROES -------------------------
 
         caminho_ld_padrao = os.path.join(caminho_padrao, "LD_padrao.xlsx")
         caminho_grd_padrao = os.path.join(caminho_padrao, "GRD_padrao.xlsx")
-
-        print("----------------------------------------------")
-        print("CAMINHO LD PADRAO:", caminho_ld_padrao)
-        print(caminho_ld_padrao)
-        print("CAMINHO GRD PADRAO:", caminho_grd_padrao)
-        print(caminho_grd_padrao)
-        print("----------------------------------------------")
 
         pastas = []
         pasta_GRD_recente = None
@@ -1012,37 +966,17 @@ def gerar_grd():
             subdiretorios.sort()
             for subdiretorio in subdiretorios:
                 pastas.append(subdiretorio)
-                print("----------------------------------------------")
-                print("SUBDIRETORIO:")
-                print(subdiretorio)
-                print("----------------------------------------------")
                 # Verifica se o nome da pasta contém "GRD"
                 if re.search(r"GRD", subdiretorio):
                     contador_GRD += 1
                     caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
-                    print("----------------------------------------------")
-                    print("CAMINHO_PASTA:")
-                    print(caminho_pasta)
-                    print("----------------------------------------------")
                     # Verifica se é a pasta mais recente
                     if contador_GRD != 1:
                         pasta_GRD_anterior = pasta_GRD_recente
                         pasta_GRD_recente = caminho_pasta
-                        print("----------------------------------------------")
-                        print("PASTA GRD ANTERIOR:")
-                        print(pasta_GRD_anterior)
-                        print("PASTA GRD RECENTE:")
-                        print(pasta_GRD_recente)
-                        print("----------------------------------------------")
                     else:
                         pasta_GRD_anterior = None
                         pasta_GRD_recente = caminho_pasta
-                        print("----------------------------------------------")
-                        print("PASTA GRD ANTERIOR:")
-                        print(pasta_GRD_anterior)
-                        print("PASTA GRD RECENTE:")
-                        print(pasta_GRD_recente)
-                        print("----------------------------------------------")
         # Gerar LD
         if pasta_GRD_anterior == None:
             # Criaçao de uma nova GRD, primeira entrega
@@ -1087,9 +1021,6 @@ def gerar_grd():
 
             # ------------------- Modificando a planilha LISTA -------------------
             planilha = workbook["Lista"]
-
-            """shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto  # projeto"""
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -1187,22 +1118,8 @@ def gerar_grd():
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
 
-            print("----------------------------------------------")
-            print("PASTA GRD ANTERIOR:")
-            print(pasta_GRD_anterior)
-            print("----------------------------------------------")
-
             for diretorio_atual, subdiretorios, arquivos in os.walk(pasta_GRD_anterior):
-                print("----------------------------------------------")
-                print("DIRETORIO ATUAL:")
-                print(diretorio_atual)
-                print("----------------------------------------------")
-                
                 for arquivo in arquivos:
-                    print("----------------------------------------------")
-                    print("ARQUIVO LD ANTERIOR:")
-                    print(arquivo)
-                    print("----------------------------------------------")
                     if re.search(r"LD", arquivo):
                         arquivo_ld_anterior = arquivo
                         partes = arquivo_ld_anterior.split("_R")
@@ -1218,11 +1135,6 @@ def gerar_grd():
                         caminho_ld_anterior = os.path.join(
                             diretorio_atual, arquivo_ld_anterior)
 
-                        print("----------------------------------------------")
-                        print("CAMINHO LD ANTERIOR:")
-                        print(caminho_ld_anterior)
-                        print("----------------------------------------------")
-                        
                     if re.search(r"GRD", arquivo):
                         arquivo_grd_anterior = arquivo
                         partes = arquivo_grd_anterior.split("-")
@@ -1236,10 +1148,6 @@ def gerar_grd():
                         caminho_grd_anterior = os.path.join(
                             diretorio_atual, arquivo_grd_anterior
                         )
-                        print("----------------------------------------------")
-                        print("CAMINHO GRD ANTERIOR:")
-                        print(caminho_grd_anterior)
-                        print("----------------------------------------------")
 
             # Abrir o arquivo Excel
             workbook = load_workbook(caminho_ld_anterior)
@@ -1390,26 +1298,10 @@ def gerar_grd():
         workbook = load_workbook(caminho_grd_padrao)
         planilha = workbook["GRD"]
 
-        print("----------------------------------------------")
-        print("NOME GRD:")
-        print(nome_grd)
-        print("----------------------------------------------")
-
         planilha["N7"].value = data_envio
         parte_num_grd = nome_grd.split("/")
-
-        print("----------------------------------------------")
-        print("PARTE NUM GRD:")
-        print(parte_num_grd)
-        print("----------------------------------------------")
-
         numero_grd = (parte_num_grd[9].split("-")[3]).split(".")[0]
         planilha["N10"].value = numero_grd
-
-        print("----------------------------------------------")
-        print("NUMERO GRD:")
-        print(numero_grd)
-        print("----------------------------------------------")
 
         parte_split_ld = nome_arq_ld.split("_R", 1)
         nova_revisao = parte_split_ld[1].split(".")[0]
@@ -1462,7 +1354,6 @@ def gerar_grd():
         workbook.save(nome_grd)
         # Fechar o arquivo Excel
         workbook.close()
-        #app.quit()
 
         pasta_GRD_recente = None
         pasta_GRD_anterior = None
@@ -1490,9 +1381,7 @@ def criar_arquivo():
         global df_arquivo
 
         projeto_recebido = request.form["projeto"]
-        print("---------------- CRIAR ARQUIVO ------------------------")
-        print("projeto_recebido:", projeto_recebido)
-        print(projeto_recebido)
+
         username = session["username"]
         disciplina = request.form["disc"]
         sub = request.form["sub"]
@@ -1525,15 +1414,11 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
-        print("---------------------- df_projeto ---------------------")
-        print(df_projeto)
+
         proj_espaco = projeto_recebido.lstrip()
 
         result = df_projeto.loc[df_projeto["projeto"] == proj_espaco]
-        print(result)
-        # abreviacao_empresa = result["abreviacao"].values[0]
         abreviacao_empresa = result.loc[0, "abreviacao"]
-        print("Abreviacao: ", result)
 
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
@@ -1578,8 +1463,6 @@ def criar_arquivo():
         padrao = "-".join(partes[:4])
 
         result_teste = df_teste[df_teste["nome"].str.contains(padrao, regex=False)]
-
-        # result_teste = df_teste[df_teste["projeto"] == projeto_recebido]
 
         if not result_teste.empty:
             sequenciais = []
@@ -1737,10 +1620,6 @@ def configuracoes():
                 diretorio_default = diretorio_padrao
             if pasta_projeto is not None:
                 pasta_padrao_projeto = pasta_projeto
-
-        elif config_valor == "config_usuario":
-            usuario = request.form.get("usuario", None)
-            senha = request.form.get("senha", None)
 
     # Renderizar o template da página de configurações
     return render_template("configuracoes.html")
