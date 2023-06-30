@@ -264,6 +264,8 @@ def projetos():
                     projeto = ""
                     numero_projeto = ""
                 df_link.loc[len(df_link)] = [projeto, numero_projeto]
+        df_link = df_link.sort_values(by='numero', ascending=False)
+        df_link = df_link.drop('numero', axis=1)
 
         # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
         df_link["projeto"] = (
