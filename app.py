@@ -1009,6 +1009,7 @@ def gerar_grd():
         contador_GRD = 0
         # Percorre todos os diretórios e arquivos no caminho fornecido
         for diretorio_atual, subdiretorios, arquivos in os.walk(caminho_verificado):
+            subdiretorios.sort()
             for subdiretorio in subdiretorios:
                 pastas.append(subdiretorio)
                 print("----------------------------------------------")
