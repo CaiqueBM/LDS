@@ -263,7 +263,7 @@ def projetos():
                 else:
                     projeto = ""
                     numero_projeto = ""
-                df_link.loc[len(df_link)] = [projeto, numero_projeto]
+                df_link.loc[len(df_link)] = [projeto, int(numero_projeto)]
         df_link = df_link.sort_values(by='numero', ascending=False)
         df_link = df_link.drop('numero', axis=1)
 
