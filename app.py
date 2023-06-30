@@ -1022,7 +1022,6 @@ def gerar_grd():
                     else:
                         pasta_GRD_anterior = None
                         pasta_GRD_recente = caminho_pasta
-
         # Gerar LD
         if pasta_GRD_anterior is None:
             # Criaçao de uma nova GRD, primeira entrega
@@ -1173,7 +1172,16 @@ def gerar_grd():
             print("----------------------------------------------")
 
             for diretorio_atual, subdiretorios, arquivos in os.walk(pasta_GRD_anterior):
+                print("----------------------------------------------")
+                print("DIRETORIO ATUAL:")
+                print(diretorio_atual)
+                print("----------------------------------------------")
+                
                 for arquivo in arquivos:
+                    print("----------------------------------------------")
+                    print("ARQUIVO LD ANTERIOR:")
+                    print(arquivo)
+                    print("----------------------------------------------")
                     if re.search(r"LD", arquivo):
                         arquivo_ld_anterior = arquivo
                         partes = arquivo_ld_anterior.split("_R")
