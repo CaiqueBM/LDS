@@ -1167,6 +1167,11 @@ def gerar_grd():
         else:
             # Atualizaçao de uma GRD ja existente, subir revisao
 
+            print("----------------------------------------------")
+            print("PASTA GRD ANTERIOR:")
+            print(pasta_GRD_anterior)
+            print("----------------------------------------------")
+
             for diretorio_atual, subdiretorios, arquivos in os.walk(pasta_GRD_anterior):
                 for arquivo in arquivos:
                     if re.search(r"LD", arquivo):
@@ -1182,8 +1187,13 @@ def gerar_grd():
                             )
 
                         caminho_ld_anterior = os.path.join(
-                            diretorio_atual, arquivo_ld_anterior
-                        )
+                            diretorio_atual, arquivo_ld_anterior)
+
+                        print("----------------------------------------------")
+                        print("CAMINHO LD ANTERIOR:")
+                        print(caminho_ld_anterior)
+                        print("----------------------------------------------")
+                        
                     if re.search(r"GRD", arquivo):
                         arquivo_grd_anterior = arquivo
                         partes = arquivo_grd_anterior.split("-")
@@ -1197,6 +1207,10 @@ def gerar_grd():
                         caminho_grd_anterior = os.path.join(
                             diretorio_atual, arquivo_grd_anterior
                         )
+                        print("----------------------------------------------")
+                        print("CAMINHO GRD ANTERIOR:")
+                        print(caminho_grd_anterior)
+                        print("----------------------------------------------")
 
             # Abrir o arquivo Excel
             workbook = load_workbook(caminho_ld_anterior)
