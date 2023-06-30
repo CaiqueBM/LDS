@@ -1011,19 +1011,39 @@ def gerar_grd():
         for diretorio_atual, subdiretorios, arquivos in os.walk(caminho_verificado):
             for subdiretorio in subdiretorios:
                 pastas.append(subdiretorio)
+                print("----------------------------------------------")
+                print("SUBDIRETORIO:")
+                print(subdiretorio)
+                print("----------------------------------------------")
                 # Verifica se o nome da pasta contém "GRD"
                 if re.search(r"GRD", subdiretorio):
                     contador_GRD += 1
                     caminho_pasta = os.path.join(diretorio_atual, subdiretorio)
+                    print("----------------------------------------------")
+                    print("CAMINHO_PASTA:")
+                    print(caminho_pasta)
+                    print("----------------------------------------------")
                     # Verifica se é a pasta mais recente
                     if contador_GRD != 1:
                         pasta_GRD_anterior = pasta_GRD_recente
                         pasta_GRD_recente = caminho_pasta
+                        print("----------------------------------------------")
+                        print("PASTA GRD ANTERIOR:")
+                        print(pasta_GRD_anterior)
+                        print("PASTA GRD RECENTE:")
+                        print(pasta_GRD_recente)
+                        print("----------------------------------------------")
                     else:
                         pasta_GRD_anterior = None
                         pasta_GRD_recente = caminho_pasta
+                        print("----------------------------------------------")
+                        print("PASTA GRD ANTERIOR:")
+                        print(pasta_GRD_anterior)
+                        print("PASTA GRD RECENTE:")
+                        print(pasta_GRD_recente)
+                        print("----------------------------------------------")
         # Gerar LD
-        if pasta_GRD_anterior is None:
+        if pasta_GRD_anterior == None:
             # Criaçao de uma nova GRD, primeira entrega
             # Abrir o arquivo Excel
             workbook = load_workbook(caminho_ld_padrao)
