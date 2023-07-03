@@ -249,20 +249,20 @@ def projetos():
                     continue
                 caminho_projeto = os.path.join(diretorio_raiz, pasta)
 
-
                 numero_personalizado = re.search(r"Projetos/(\d+)\s*-", caminho_projeto)
                 if numero_personalizado:
                     numero_projeto = numero_personalizado.group(1)
 
                 #Buscar nome do projeto
-                projeto_arquivo = re.search(
+                """projeto_arquivo = re.search(
                     r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto
                 )
                 if projeto_arquivo:
                     projeto = projeto_arquivo.group(1)
                 else:
                     projeto = ""
-                    numero_projeto = ""
+                    numero_projeto = """
+                projeto = pasta
                 df_link.loc[len(df_link)] = [projeto, int(numero_projeto)]
         df_link = df_link.sort_values(by='numero', ascending=False)
         df_link = df_link.drop('numero', axis=1)
