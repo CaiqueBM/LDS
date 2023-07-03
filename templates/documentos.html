@@ -32,7 +32,7 @@
 
     {% block content %}
 
-    <h1>Documentos de {{ projeto }}</h1>
+    <h3>{{ projeto }}</h3>
 
     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
         Criar novo arquivo
@@ -56,7 +56,7 @@
                         <div class="form-group row">
                             <div class="col-9">
                                 <label for="titulo">Titulo:</label>
-                                <input type="text" class="form-control" id="titulo" name="titulo">
+                                <input type="text" class="form-control" id="titulo" name="titulo" required>
                             </div>
                         </div>
                         <div class="col-4">

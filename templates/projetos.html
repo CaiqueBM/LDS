@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Todos Projetos</title>
+    <title>Sistema LDS - Todos Projetos</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.2/css/jquery.dataTables.min.css">
@@ -35,7 +35,7 @@
     {% extends 'base.html' %}
 
     {% block content %}
-    <h1>{% block title %} Todos Projetos {% endblock %}</h1>
+    <h1>{% block title %} Sistema LDS - Todos Projetos {% endblock %}</h1>
 
 
 
@@ -58,13 +58,13 @@
                         <div class="form-group">
                             <label for="nome_projeto">Nome do projeto:</label>
                             <input type="text" class="form-control" id="nome_projeto" name="nome_projeto"
-                                value="{{ nome_projeto }}">
+                                value="{{ nome_projeto }}" required>
                             <label for=" abreviacao_empresa">Abreviaçao da empresa:</label>
                             <input type="text" class="form-control" id="abreviacao_empresa" name="abreviacao_empresa"
-                                value="{{ abreviacao_empresa }}">
+                                value="{{ abreviacao_empresa }}" required>
                             <label for=" descricao_projeto">Descriçao do projeto:</label>
                             <input type="text" class="form-control" id="descricao_projeto" name="descricao_projeto"
-                                value="{{ descricao_projeto }}">
+                                value="{{ descricao_projeto }}" required>
                         </div>
                         <button type=" submit" class="btn btn-primary">Criar</button>
                     </form>

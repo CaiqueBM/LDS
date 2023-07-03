@@ -4,6 +4,9 @@
 <head>
     <title>{{ projeto }}</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
@@ -27,7 +30,7 @@
     {% extends 'base.html' %}
     {% block content %}
 
-    <h1>Documentos de {{ projeto }}</h1>
+    <h1>{{ projeto }}</h1>
 
     {% if atualizar == "intermedio" %}
     <form action="/intermediador" method="post">
@@ -79,16 +82,20 @@
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
 
         {% if responsavel_status == "Em Desenvolvimento" %}
-        <label for="nome_aprovador">Aprovador:</label>
-        <select form-control id="aprovador" name="aprovador">
-            <option value="Andre">Andre</option>
-            <option value="Caique">Caique</option>
-            <option value="Renato">Renato</option>
-            <option value="Richard">Richard</option>
-        </select>
+        <button type="button" class="btn btn-primary mudar_status" name="abrir_select" onclick="mostrarSelect()">Para Aprovação</button>
 
-        <button type="submit" class="mudar_status" name="status_atualizar" value="atualizar">Para Aprovaçao</button>
-        <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
+        <div id="selectContainer" style="display: none;">
+            <label for="nome_aprovador">Aprovador:</label>
+            <select class="form-control" id="aprovador" name="aprovador">
+                <option value="Andre">Andre</option>
+                <option value="Caique">Caique</option>
+                <option value="Renato">Renato</option>
+                <option value="Richard">Richard</option>
+            </select>
+            
+        </div>
+        <button type="submit" class="btn btn-primary mudar_status" id="status_atualizar" name="status_atualizar" value="atualizar" style="display: none;">Para Aprovação</button>
+        <button type="submit" class="btn btn-secondary mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
 
         <table class="table table-striped table-documentos">
             <thead>
@@ -167,7 +174,6 @@
         {% if responsavel_status == "Criado" %}
         <button type="submit" class="mudar_status" name="status_atualizar" value="atualizar">Mudar Status</button>
         <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
-
         <table class="table table-striped table-documentos">
             <thead>
                 <tr>
@@ -197,7 +203,7 @@
 
         <div class="form-group">
             <label for="nome_pasta">Novo nome da pasta:</label>
-            <input type="text" class="form-control" id="nome_pasta" name="nome_pasta">
+            <input type="text" class="form-control" id="nome_pasta" name="nome_pasta" required>
         </div>
         <button type="submit" class="btn btn-primary">Renomear Pasta</button>
     </form>
@@ -218,7 +224,7 @@
 
         <div class="form-group">
             <label for="nome_pasta">Revisao:</label>
-            <input type="text" class="form-control" id="revisao" name="revisao">
+            <input type="text" class="form-control" id="revisao" name="revisao" required>
             <label for="nome_pasta">Tipo:</label>
             <select form-control id="tipo" name="tipo">
                 <option value="A">A - PRELIMINAR</option>
@@ -230,15 +236,16 @@
                 <option value="G">G - CONFORME CONSTRUIDO</option>
                 <option value="H">H - CANCELADO</option>
             </select>
+            
             <label for="nome_pasta">Descriçao:</label>
-            <input type="text" class="form-control" id="descricao" name="descricao">
+            <input type="text" class="form-control" id="descricao" name="descricao" required>
 
             <label for="nome_pasta">Verificado por:</label>
-            <input type="text" class="form-control" id="verificado" name="verificado">
-            <label for="nome_pasta">Verificado por:</label>
-            <input type="text" class="form-control" id="aprovado" name="aprovado">
+            <input type="text" class="form-control" id="verificado" name="verificado" required>
+            <label for="nome_pasta">Aprovado por:</label>
+            <input type="text" class="form-control" id="aprovado" name="aprovado" required>
             <label for="nome_pasta">Autorizado por:</label>
-            <input type="text" class="form-control" id="autorizado" name="autorizado">
+            <input type="text" class="form-control" id="autorizado" name="autorizado" required>
 
         </div>
         <button type="submit" class="btn btn-primary">Gerar GRD</button>
@@ -247,6 +254,13 @@
 
     </form>
     {% endif %}
+
+    <script>
+        function mostrarSelect() {
+            $("#selectContainer").show();
+            $("#status_atualizar").show();
+        }
+    </script>
 
     {% endblock %}
 
