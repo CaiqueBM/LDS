@@ -1421,7 +1421,7 @@ def criar_arquivo():
         print("------------------------------")
 
         proj_espaco = projeto_recebido.lstrip()
-        print("-----------proj_espaco-------------------")
+        print("-----------proj_espacos-------------------")
         print(proj_espaco)
         print("------------------------------")
 
@@ -1435,6 +1435,7 @@ def criar_arquivo():
         print("------------------------------")
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
+        
 
         # --------------- Sequencia dos arquivos ---------------------
         caminho_projeto = os.path.join(diretorio_raiz, proj_prox[0])
