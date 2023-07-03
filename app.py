@@ -1383,7 +1383,6 @@ def criar_arquivo():
         global df_arquivo
 
         projeto_recebido = request.form["projeto"]
-
         username = session["username"]
         disciplina = request.form["disc"]
         sub = request.form["sub"]
@@ -1420,7 +1419,8 @@ def criar_arquivo():
         print(df_projeto)
         print("------------------------------")
 
-        proj_espaco = projeto_recebido.lstrip()
+        #proj_espaco = projeto_recebido.lstrip()
+        proj_espaco = projeto_recebido.split(" - ")[-1]
         print("-----------proj_espacos-------------------")
         print(proj_espaco)
         print("------------------------------")
@@ -1429,13 +1429,13 @@ def criar_arquivo():
         print("-----------result-------------------")
         print(result)
         print("------------------------------")
+
         abreviacao_empresa = result.loc[0, "abreviacao"]
         print("-----------abreviacao_empresa-------------------")
         print(abreviacao_empresa)
         print("------------------------------")
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
-        
 
         # --------------- Sequencia dos arquivos ---------------------
         caminho_projeto = os.path.join(diretorio_raiz, proj_prox[0])
