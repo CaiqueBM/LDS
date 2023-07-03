@@ -1416,12 +1416,23 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        print("-----------df_projeto-------------------")
+        print(df_projeto)
+        print("------------------------------")
 
         proj_espaco = projeto_recebido.lstrip()
+        print("-----------proj_espaco-------------------")
+        print(proj_espaco)
+        print("------------------------------")
 
         result = df_projeto.loc[df_projeto["projeto"] == proj_espaco]
+        print("-----------result-------------------")
+        print(result)
+        print("------------------------------")
         abreviacao_empresa = result.loc[0, "abreviacao"]
-
+        print("-----------abreviacao_empresa-------------------")
+        print(abreviacao_empresa)
+        print("------------------------------")
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
 
