@@ -63,8 +63,6 @@ pasta_padrao_projeto = os.path.join(
 #caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
 #pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
 
-
-
 @app.route("/")
 def index():
     return render_template("login.html")
@@ -525,7 +523,7 @@ def atualizar_status():
         status_aprovador = request.form.get("status_aprovador", None)
         status_atualizar = request.form.get("status_atualizar", None)
         now = datetime.datetime.now()
-        data_atualizada = now.strftime("%d/%m/%Y")
+        data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
         data_hora = now.strftime("%d/%m/%Y %H:%M:%S")
         tamanho = len(linha_selecionada)
 
@@ -592,7 +590,7 @@ def atualizar_status():
                         "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
                         (
                             nome_do_arquivo,
-                            projeto,
+                            projeto_arquivo,
                             status_atual[0],
                             data_hora,
                             username,
@@ -642,7 +640,7 @@ def atualizar_status():
                         "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
                         (
                             nome_do_arquivo,
-                            projeto,
+                            projeto_arquivo,
                             status_atual[0],
                             data_atualizada,
                             username,
@@ -728,7 +726,7 @@ def atualizar_status():
                         novo_status = status[
                             (status.index(status_atual[i]) + 1) % len(status)
                         ]
-                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
                         c.execute(query)
 
                         c.execute(
@@ -1396,19 +1394,6 @@ def criar_arquivo():
             difflib.get_close_matches(projeto_recebido, os.listdir(diretorio_raiz))[0],
         )
 
-        # -------------------- Buscar nome do projeto na pasta --------------------
-        folders = [
-            f
-            for f in os.listdir(diretorio_raiz)
-            if os.path.isdir(os.path.join(diretorio_raiz, f))
-        ]
-
-        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
-        pattern = re.compile(rf".*{re.escape(projeto_recebido)}.*", re.IGNORECASE)
-
-        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        proj_prox = [f for f in folders if re.match(pattern, f)]
-
         # ---------------------Buscar abreviacao da empresa-------------------
 
         # Buscar o titulo
@@ -1416,16 +1401,13 @@ def criar_arquivo():
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
 
-        #proj_espaco = projeto_recebido.lstrip()
-        proj_espaco = projeto_recebido.split(" - ")[-1]
-
-        result = df_projeto.loc[df_projeto["projeto"] == proj_espaco]
-        abreviacao_empresa = result.loc[0, "abreviacao"]
+        result = df_projeto.loc[df_projeto["projeto"] == str(projeto_recebido)]
+        abreviacao_empresa = result["abreviacao"].iloc[0]
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
 
         # --------------- Sequencia dos arquivos ---------------------
-        caminho_projeto = os.path.join(diretorio_raiz, proj_prox[0])
+        caminho_projeto = os.path.join(diretorio_raiz, projeto_recebido)
         df_teste = pd.DataFrame(columns=["nome", "projeto"])
 
         # ------------------- Buscar os dados no CSV ---------------------
@@ -1505,7 +1487,7 @@ def criar_arquivo():
         shutil.copyfile(caminho_origem, caminho_destino)
 
         projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
-        projeto_arquivo = projeto_arquivo.group(1) if proj_prox else None
+        projeto_arquivo = projeto_arquivo.group(1)
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
@@ -1517,13 +1499,13 @@ def criar_arquivo():
                 username,
                 data_atualizada,
                 caminho_destino,
-                projeto_arquivo,
+                projeto_recebido,
             ),
         )
 
         c.execute(
             "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
-            (nome_arquivo, proj_prox[0], titulo),
+            (nome_arquivo, projeto_recebido, titulo),
         )
 
         c.execute(
@@ -1584,7 +1566,7 @@ def criar_projeto():
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
-        query = f"""INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES ('{nome_projeto_inicial}', '{abreviacao_empresa}', '{descricao_projeto}')"""
+        query = f"""INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES ('{nome_projeto}', '{abreviacao_empresa}', '{descricao_projeto}')"""
         c.execute(query)
         conn.commit()
         conn.close()
