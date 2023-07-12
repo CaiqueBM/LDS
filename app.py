@@ -392,19 +392,19 @@ def atualizar_responsavel():
                     nome_do_arquivo = os.path.basename(caminho_projeto[i])
 
                     partes_pasta = caminho_projeto[i].split(
-                        "\\"
+                        "/"
                     )  # Dividindo o caminho do projeto usando as barras duplas como separadores
                     indice_area_trabalho = partes_pasta.index(
                         "Area de Trabalho"
                     )  # Obtendo o índice da parte "Area de Trabalho" na lista
-                    caminho_sem_responsavel = "\\".join(
+                    caminho_sem_responsavel = "/".join(
                         partes_pasta[: indice_area_trabalho + 1]
                     )  # Unindo as partes do caminho até a área de trabalho novamente usando as barras duplas
                     caminho_final = (
                         caminho_sem_responsavel
-                        + "\\"
+                        + "/"
                         + username
-                        + "\\"
+                        + "/"
                         + nome_do_arquivo
                     )  # Adicionando o responsável ao final do caminho
 
