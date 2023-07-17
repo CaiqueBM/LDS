@@ -1484,7 +1484,7 @@ def criar_arquivo():
             nome_arquivo,
         )
 
-        shutil.copystat(caminho_origem, caminho_destino)
+        shutil.copy(caminho_origem, caminho_destino)
 
         projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
         projeto_arquivo = projeto_arquivo.group(1)
