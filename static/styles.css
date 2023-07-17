@@ -5,6 +5,56 @@ body {
     background-color: #f0f0f0;
 }
 
+header img.logo {
+    max-width: 100%;
+    height: auto;
+  }
+
+.form-group {
+    flex-basis: 120px;
+    margin-right: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.form-group-rev {
+    flex-basis: 120px;
+    margin-right: 10px;
+}
+
+.form-group-rev label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group-rev input {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.form-group-desc {
+    flex-basis: 120px;
+    margin-right: 10px;
+}
+
+.form-group-desc label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group-desc input {
+    flex-grow: 1;
+    text-align: center;
+}
+
 .table-login {
     max-width: 500px;
     margin: 15% auto;
@@ -80,6 +130,20 @@ header {
     padding: 10px;
     text-align: center;
 }
+
+.header-content {
+    text-align: right;
+    margin-top: -100px;
+  }
+  
+  .sair {
+    margin-top: 10px;
+  }
+  
+  .logout-link {
+    text-decoration: none;
+    color: #333;
+  }
 
 h1 {
     font-size: 2em;
@@ -356,3 +420,40 @@ summary {
     transform: translateY(-50%);
     cursor: pointer;
 }
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  label,
+  input,
+  select {
+    width: 200px;
+  }
+  
+  label {
+    display: block;
+  }
+  
+  input,
+  select {
+    display: block;
+  }
+  
+  #tipo {
+    width: 210px; /* Aumentamos um pouco a largura para acomodar o texto mais longo */
+  }
+  
+  button {
+    margin-top: 10px;
+  }
+  

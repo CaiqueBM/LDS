@@ -1158,7 +1158,7 @@ def gerar_grd():
 
             # Logica para ler qual a ultima revisao
             proxima_linha = None
-            for linha in range(12, 31 + 1):
+            for linha in range(12, 61):
                 if planilha.cell(row=linha, column=1).value is None:
                     X = linha
                     ultima_revisao = X - 13
@@ -1203,7 +1203,7 @@ def gerar_grd():
 
 
             proxima_linha = None
-            for linha in range(12, 31 + 1):
+            for linha in range(12, 61):
                 if planilha.cell(row=linha, column=2).value is None:
                     X = linha
                     break
@@ -1607,6 +1607,9 @@ def configuracoes():
     # Renderizar o template da página de configurações
     return render_template("configuracoes.html")
 
+# --------------------------------------------------------------------------------
+
+    
 
 # --------------------------------------------------------------------------------
 
