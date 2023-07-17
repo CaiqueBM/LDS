@@ -1484,7 +1484,7 @@ def criar_arquivo():
             nome_arquivo,
         )
 
-        shutil.copyfile(caminho_origem, caminho_destino)
+        shutil.copystat(caminho_origem, caminho_destino)
 
         projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
         projeto_arquivo = projeto_arquivo.group(1)
@@ -1609,7 +1609,31 @@ def configuracoes():
 
 # --------------------------------------------------------------------------------
 
-    
+@app.route("/log_atividade", methods=["GET", "POST"])
+def log_atividade():
+    if "username" in session:
+        username = session["username"]
+        login_time = session["login_time"]
+        global df_tabela
+        global diretorio_raiz
+        conn = sqlite3.connect("database.db")
+        df_atividade = pd.read_sql_query(f"SELECT * FROM log_tarefas", conn,)
+
+        # Renderiza a página "projetos.html" e passa os dados da tabela "arquivos" para a variável "tabela"
+        tabela_atividade = df_atividade.to_html(
+            classes="table table-striped table-user",
+            escape=False,
+            index=False,
+            table_id="myTable",
+        )
+
+        return render_template(
+            "log_atividade.html",
+            username=username,
+            login_time=login_time,
+            tabela=tabela_atividade,
+        )
+
 
 # --------------------------------------------------------------------------------
 
