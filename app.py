@@ -251,15 +251,6 @@ def projetos():
                 if numero_personalizado:
                     numero_projeto = numero_personalizado.group(1)
 
-                #Buscar nome do projeto
-                """projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto
-                )
-                if projeto_arquivo:
-                    projeto = projeto_arquivo.group(1)
-                else:
-                    projeto = ""
-                    numero_projeto = """
                 projeto = pasta
                 df_link.loc[len(df_link)] = [projeto, int(numero_projeto)]
         df_link = df_link.sort_values(by='numero', ascending=False)
@@ -703,9 +694,6 @@ def atualizar_status():
                         caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
-                    print("-----------------------------------------------")
-                    print("projeto_arquivo:", projeto_arquivo)
-                    print("-----------------------------------------------")
 
                     pasta_destino = os.path.join(
                         diretorio_raiz,
@@ -714,6 +702,11 @@ def atualizar_status():
                         "Para Entrega",
                         "Aprovados",
                     )
+
+                    # Verifica se o diretório 'Aprovados' já existe
+                    if not os.path.exists(pasta_destino):
+                        # Cria o diretório 'Aprovados'
+                        os.makedirs(pasta_destino)
 
                     # Itera sobre os resultados e move cada arquivo para a pasta de destino
                     conn = sqlite3.connect("database.db")
@@ -1609,32 +1602,32 @@ def configuracoes():
 
 # --------------------------------------------------------------------------------
 
-@app.route("/log_atividade", methods=["GET", "POST"])
-def log_atividade():
+@app.route("/log_atividades", methods=["GET", "POST"])
+def log_atividades():
     if "username" in session:
         username = session["username"]
         login_time = session["login_time"]
-        global df_tabela
-        global diretorio_raiz
+
         conn = sqlite3.connect("database.db")
         df_atividade = pd.read_sql_query(f"SELECT * FROM log_tarefas", conn,)
 
+        df_atividade = df_atividade.sort_values(by='id', ascending=False)
+
         # Renderiza a página "projetos.html" e passa os dados da tabela "arquivos" para a variável "tabela"
         tabela_atividade = df_atividade.to_html(
-            classes="table table-striped table-user",
+            classes="table table-striped table-atividade",
             escape=False,
             index=False,
             table_id="myTable",
         )
 
         return render_template(
-            "log_atividade.html",
+            "log_atividades.html",
             username=username,
             login_time=login_time,
-            tabela=tabela_atividade,
+            tabela_atividade=tabela_atividade,
         )
-
-
+    
 # --------------------------------------------------------------------------------
 
 if __name__ == "__main__":
