@@ -12,7 +12,7 @@
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
         </div>
-        <div>
+        <div class="header-content">
             <p>Olá, {{ username }}!</p>
             <p>Data e hora de login: {{ login_time }}</p>
         </div>
@@ -21,13 +21,19 @@
                 <a href="{{ url_for('logout') }}" class="logout-link">Sair</a>
             </div>
         </div>
-
     </header>
 
     {% extends 'base.html' %}
 
     {% block content %}
-    <h1>{% block title %} Meus Projetos {% endblock %}</h1>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-18">
+    <h3>{% block title %} Meus Projetos {% endblock %}</h3>
+</div>
+</div>
+</div>
 
     {{ tabela_projetos | safe }}
 

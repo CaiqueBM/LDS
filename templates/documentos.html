@@ -16,7 +16,7 @@
         </div>
 
         </div>
-        <div>
+        <div class="header-content">
             <p>Olá, {{ username }}!</p>
             <p>Data e hora de login: {{ login_time }}</p>
         </div>
@@ -31,13 +31,22 @@
     {% extends 'base.html' %}
 
     {% block content %}
-
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-18">
     <h3>{{ projeto }}</h3>
+</div>
+</div>
+</div>
 
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+<div class="container">      
+    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
         Criar novo arquivo
     </button>
-    <input type="hidden" name="projeto" value="{{ projeto }}">
+    <button type="submit" class="btn btn-primary" form="tornarResponsavelForm" name="mudar_responsavel" value="true">Tornar Responsavel</button>
+    <button type="submit" class="btn btn-primary" form="subirRevisaoForm" name="subir_revisao" value="true">Subir revisao</button>
+
+<input type="hidden" name="projeto" value="{{ projeto }}">
 
     <!-- Popup -->
     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -73,7 +82,6 @@
                                 {% endfor %}
                             </select>
                         </div>
-
                 </div>
                 <div class="form-group">
                     <label for="arquivos">Arquivos existentes:</label>
@@ -94,17 +102,15 @@
     </div>
     </div>
 
-    <form action="/atualizar_responsavel" method="post">
+    <form  id="tornarResponsavelForm" action="/atualizar_responsavel" method="post">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="titulo" value="{{ titulo }}">
-        <button type="submit" class="btn btn-primary" name="mudar_responsavel" value="true">Tornar Responsavel</button>
-
-
+        
         {% for status in status_list %}
-
-        <details>
+       
+        <details class="container-documentos">
             <summary>{{ status }}</summary>
-            <table class="table table-striped table-documentos">
+            <table class="table table-striped table-documentos col-md-10">
                 <thead>
                     <tr>
                         <th>Selecionar</th>
@@ -133,9 +139,10 @@
             </table>
         </details>
         {% endfor %}
-
     </form>
     {% endblock %}
+</div>
+
 </body>
 
 </html>

@@ -90,6 +90,7 @@ def login():
                     (username, login_time),
                 )
                 conn.commit()
+                c.close()
                 conn.close()
                 session["username"] = username
                 session["login_time"] = login_time
@@ -126,13 +127,14 @@ def user():
             f"SELECT DISTINCT projeto FROM arquivos WHERE (responsavel = '{username}' OR aprovador = '{username}')",
             conn,
         )
+        # Feche a conexão com o banco de dados
+        conn.close()
 
         df_tabela["projeto"] = df_tabela["projeto"].apply(
             lambda x: f"<a href='/user/{x}'>{x}</a>"
         )
 
-        # Feche a conexão com o banco de dados
-        conn.close()
+        
         tabela_projetos = df_tabela.to_html(
             classes="table table-striped table-user", escape=False, index=False
         )
@@ -304,6 +306,7 @@ def documentos(projeto):
             f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''',
             conn,
         )
+        conn.close()
         documentos = [tuple(row) for row in df_tabela.values]
 
         status_list = df_tabela["status"].unique()
@@ -321,7 +324,7 @@ def documentos(projeto):
                 fields = line.strip().split(";")
                 sub.append(fields[1])
 
-        conn.close()
+        
         # df_tabela.drop(df_tabela.index, inplace=True)
 
         response = make_response(
@@ -375,6 +378,104 @@ def atualizar_responsavel():
                     df_selecionado=df_selecionado,
                 )
             )
+        elif atualizar_responsavel == "revisao":
+            caminho_projeto = re.search(
+                r"(?<=).*?(?=\\Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+            )
+            caminho_projeto = caminho_projeto.group(0)
+
+            projeto_arquivo = re.search(
+                r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)", caminho_projeto_df[0]
+            )
+            projeto_arquivo = projeto_arquivo.group(0)
+
+            # buscar abreviacao
+            conn = sqlite3.connect("database.db")
+            query = "SELECT * FROM dados_arquivo"
+            df_projeto = pd.read_sql_query(query, conn)
+            conn.close()
+
+            for i in range(tamanho_lista):
+                nome_do_arquivo = os.path.basename(caminho_projeto_df[i])
+
+                partes = nome_do_arquivo.split('.')
+                nome_arq = partes[0]
+
+                # Obtendo a última parte da lista (que é a extensão do arquivo)
+                extensao = partes[-1]
+
+                posicao_r = nome_arq.find('R')
+                if posicao_r != -1:  # Se 'R' for encontrado na string
+                    numero_atual = int(nome_arq[posicao_r + 1:])  # Extrai o número subsequente após 'R'
+                    novo_numero = numero_atual + 1
+                    novo_nome = nome_arq[:posicao_r + 1] + str(novo_numero) + "." + extensao  # Compondo a nova string
+
+                    pasta_destino = os.path.join(
+                        diretorio_raiz,
+                        projeto_arquivo,
+                        "Arquivos do Projeto",
+                        "Area de Trabalho",
+                        username,
+                    )
+
+                shutil.copy(caminho_projeto_df[i], pasta_destino)
+
+                # Monta o caminho do arquivo no destino com o novo nome
+                novo_caminho = os.path.join(pasta_destino, novo_nome)
+
+                # Renomeia o arquivo copiado no destino com o novo nome
+                os.rename(os.path.join(pasta_destino, nome_do_arquivo), novo_caminho)
+
+                result_projeto = df_projeto[df_projeto["nome"] == nome_do_arquivo]
+
+                titulo_arquivo = result_projeto["titulo"].iloc[0]
+
+                conn = sqlite3.connect("database.db")
+                conn.execute('BEGIN EXCLUSIVE')
+                c = conn.cursor()
+                c.execute(
+                    "INSERT INTO arquivos (nome, status, responsavel, data_criado, caminho, projeto) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        novo_nome,
+                        "Em Desenvolvimento",
+                        username,
+                        data_hora,
+                        novo_caminho,
+                        projeto_arquivo,
+                    ),
+                )
+
+                c.execute(
+                    "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
+                    (novo_nome, projeto_arquivo, titulo_arquivo),
+                )
+
+                c.execute(
+                    "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        novo_nome,
+                        projeto_arquivo,
+                        "Criado",
+                        data_hora,
+                        username,
+                    ),
+                )
+                conn.commit()
+                c.close()
+                conn.close()
+
+            linha_selecionada = []
+            df_tabela = df_tabela.dropna()
+
+            return redirect(
+                url_for(
+                    "documentos",
+                    projeto=projeto,
+                    responsavel_status=responsavel_status,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
+            )
         else:
             if status_atual[0] == "Criado" or status_atual[0] == "Em Desenvolvimento":
                 conn = sqlite3.connect("database.db")
@@ -418,7 +519,7 @@ def atualizar_responsavel():
                         ),
                     )
                     conn.commit()
-
+                c.close()
                 conn.close()
             else:
                 print("0")
@@ -552,10 +653,6 @@ def atualizar_status():
                 linha_selecionada = []
 
                 if caminho_projeto is not None:
-                    print("-----------------------------------------------")
-                    print(caminho_projeto[0])
-                    print("-----------------------------------------------")
-
                     projeto_arquivo = re.search(
                         # r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
                         r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)",
@@ -588,7 +685,7 @@ def atualizar_status():
                         ),
                     )
                     conn.commit()
-
+                c.close()
                 conn.close()
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
@@ -602,9 +699,6 @@ def atualizar_status():
                         caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
-                    print("-----------------------------------------------")
-                    print("projeto_arquivo:", projeto_arquivo)
-                    print("-----------------------------------------------")
 
                 pasta_destino = os.path.join(
                     diretorio_raiz,
@@ -639,9 +733,10 @@ def atualizar_status():
                     )
                     conn.commit()
 
-                    shutil.move(caminho_projeto[i], pasta_destino)
-
+                c.close()
                 conn.close()
+                shutil.move(caminho_projeto[i], pasta_destino)
+
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
             elif status_atual[0] == "Para Avaliacao":
@@ -655,9 +750,6 @@ def atualizar_status():
                             caminho_projeto[0],
                         )
                     projeto_arquivo = projeto_arquivo.group(0)
-                    print("-----------------------------------------------")
-                    print("projeto_arquivo:", projeto_arquivo)
-                    print("-----------------------------------------------")
 
                     pasta_destino = os.path.join(
                         diretorio_raiz,
@@ -681,6 +773,8 @@ def atualizar_status():
                         query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = 'Em Desenvolvimento', responsavel = '{responsavel}', aprovador = '' WHERE id = '{id_documentos[i]}' """
                         c.execute(query)
                         conn.commit()
+                        c.close()
+                        conn.close()
 
                         shutil.move(caminho_projeto[i], pasta_destino)
 
@@ -732,15 +826,16 @@ def atualizar_status():
                                 username,
                             ),
                         )
-                        conn.commit()
 
                         conn.commit()
+                        c.close()
+                        conn.close()
 
                         shutil.move(caminho_projeto[i], pasta_destino)
 
-                    conn.close()
                     linha_selecionada = []
                     df_tabela = df_tabela.dropna()
+
         elif status_atualizar == "gerar_grd":
             control = "renomear"
 
@@ -839,7 +934,7 @@ def renomear_pasta():
             nome_do_arquivo = os.path.basename(row["caminho"])
             caminho_arq = os.path.join(caminho_atual, nome_do_arquivo)
 
-            shutil.move(caminho_arq, novo_caminho)
+            shutil.copy(caminho_arq, novo_caminho)
 
             if row["caminho"] == caminho_arq:
                 caminho_arq = os.path.join(novo_caminho, nome_do_arquivo)
@@ -858,7 +953,7 @@ def renomear_pasta():
                 )
                 conn.commit()
 
-                conn.commit()
+        c.close()
         conn.close()
 
         control = "gerar_grd"
@@ -938,6 +1033,7 @@ def gerar_grd():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        conn.close()
 
         result_projeto = df_projeto[df_projeto["projeto"] == projeto]
 
@@ -1040,6 +1136,7 @@ def gerar_grd():
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
             df_arquivo = pd.read_sql_query(query, conn)
+            conn.close()
 
             for nome in nome_arq:
                 result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
@@ -1193,6 +1290,7 @@ def gerar_grd():
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
             df_arquivo = pd.read_sql_query(query, conn)
+            conn.close()
 
 
             proxima_linha = None
@@ -1317,6 +1415,7 @@ def gerar_grd():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_arquivo"
         df_arquivo = pd.read_sql_query(query, conn)
+        conn.close()
 
         for nome in nome_arq:
             planilha["A" + str(X)].value = str(X - 36)
@@ -1393,6 +1492,7 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        conn.close()
 
         result = df_projeto.loc[df_projeto["projeto"] == str(projeto_recebido)]
         abreviacao_empresa = result["abreviacao"].iloc[0]
@@ -1434,6 +1534,7 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
         df_teste = pd.read_sql_query(query, conn)
+        conn.close()
 
         partes = nome_arquivo.split("-", 4)
         padrao = "-".join(partes[:4])
@@ -1483,6 +1584,7 @@ def criar_arquivo():
         projeto_arquivo = projeto_arquivo.group(1)
 
         conn = sqlite3.connect("database.db")
+        conn.execute('BEGIN EXCLUSIVE')
         c = conn.cursor()
         c.execute(
             "INSERT INTO arquivos (nome, status, responsavel, data_criado, caminho, projeto) VALUES (?, ?, ?, ?, ?, ?)",
@@ -1512,7 +1614,7 @@ def criar_arquivo():
             ),
         )
         conn.commit()
-        conn.commit()
+        c.close()
         conn.close()
 
         return redirect(
@@ -1574,31 +1676,32 @@ def criar_projeto():
 
 @app.route("/configuracoes", methods=["GET", "POST"])
 def configuracoes():
-    global diretorio_raiz
-    global caminho_padrao
-    global diretorio_default
-    global pasta_padrao_projeto
+    if "username" in session:
+        global diretorio_raiz
+        global caminho_padrao
+        global diretorio_default
+        global pasta_padrao_projeto
 
-    if request.method == "POST":
-        config_valor = request.form.get("config_valor", None)
+        if request.method == "POST":
+            config_valor = request.form.get("config_valor", None)
 
-        if config_valor == "config_diretorios":
-            diretorio_projetos = request.form.get("diretorio_projetos", None)
-            diretorio_grd = request.form.get("diretorio_grd", None)
-            diretorio_padrao = request.form.get("diretorio_padrao", None)
-            pasta_projeto = request.form.get("pasta_projeto", None)
+            if config_valor == "config_diretorios":
+                diretorio_projetos = request.form.get("diretorio_projetos", None)
+                diretorio_grd = request.form.get("diretorio_grd", None)
+                diretorio_padrao = request.form.get("diretorio_padrao", None)
+                pasta_projeto = request.form.get("pasta_projeto", None)
 
-            if diretorio_projetos is not None:
-                diretorio_raiz = diretorio_projetos
-            if diretorio_grd is not None:
-                caminho_padrao = diretorio_grd
-            if diretorio_padrao is not None:
-                diretorio_default = diretorio_padrao
-            if pasta_projeto is not None:
-                pasta_padrao_projeto = pasta_projeto
+                if diretorio_projetos is not None:
+                    diretorio_raiz = diretorio_projetos
+                if diretorio_grd is not None:
+                    caminho_padrao = diretorio_grd
+                if diretorio_padrao is not None:
+                    diretorio_default = diretorio_padrao
+                if pasta_projeto is not None:
+                    pasta_padrao_projeto = pasta_projeto
 
-    # Renderizar o template da página de configurações
-    return render_template("configuracoes.html")
+        # Renderizar o template da página de configurações
+        return render_template("configuracoes.html")
 
 # --------------------------------------------------------------------------------
 
@@ -1610,6 +1713,7 @@ def log_atividades():
 
         conn = sqlite3.connect("database.db")
         df_atividade = pd.read_sql_query(f"SELECT * FROM log_tarefas", conn,)
+        conn.close()
 
         df_atividade = df_atividade.sort_values(by='id', ascending=False)
 

@@ -18,7 +18,7 @@
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
         </div>
-        <div>
+        <div class="header-content">
             <p>Olá, {{ username }}!</p>
             <p>Data e hora de login: {{ login_time }}</p>
         </div>
@@ -35,54 +35,63 @@
     {% extends 'base.html' %}
 
     {% block content %}
-    <h1>{% block title %} Sistema LDS - Todos Projetos {% endblock %}</h1>
+    
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-18">
+    <h3>{% block title %} Sistema LDS - Todos Projetos {% endblock %}</h3>
+</div>
+</div>
+</div>
 
-
-
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
     <!-- Botão que abre o modal -->
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
         Criar projeto
     </button>
-
-    <!-- Modal -->
-    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title" id="myModalLabel">Criar novo projeto</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                            aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <form action="{{ url_for('criar_projeto') }}" method="post">
-                        <div class="form-group">
-                            <label for="nome_projeto">Nome do projeto:</label>
-                            <input type="text" class="form-control" id="nome_projeto" name="nome_projeto"
-                                value="{{ nome_projeto }}" required>
-                            <label for=" abreviacao_empresa">Abreviaçao da empresa:</label>
-                            <input type="text" class="form-control" id="abreviacao_empresa" name="abreviacao_empresa"
-                                value="{{ abreviacao_empresa }}" required>
-                            <label for=" descricao_projeto">Descriçao do projeto:</label>
-                            <input type="text" class="form-control" id="descricao_projeto" name="descricao_projeto"
-                                value="{{ descricao_projeto }}" required>
-                        </div>
-                        <button type=" submit" class="btn btn-primary">Criar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
 
 
 
     {{ tabela | safe }}
-
+</div>
+</div>
+</div>
 
     {% endblock %}
 
 
 
+
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">Criar novo projeto</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('criar_projeto') }}" method="post">
+                    <div class="form-group">
+                        <label for="nome_projeto">Nome do projeto:</label>
+                        <input type="text" class="form-control" id="nome_projeto" name="nome_projeto"
+                            value="{{ nome_projeto }}" required>
+                        <label for=" abreviacao_empresa">Abreviaçao da empresa:</label>
+                        <input type="text" class="form-control" id="abreviacao_empresa" name="abreviacao_empresa"
+                            value="{{ abreviacao_empresa }}" required>
+                        <label for=" descricao_projeto">Descriçao do projeto:</label>
+                        <input type="text" class="form-control" id="descricao_projeto" name="descricao_projeto"
+                            value="{{ descricao_projeto }}" required>
+                    </div>
+                    <button type=" submit" class="btn btn-primary">Criar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 

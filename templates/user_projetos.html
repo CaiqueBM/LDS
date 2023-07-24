@@ -30,11 +30,20 @@
     </header>
     {% extends 'base.html' %}
     {% block content %}
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-18">
+    <h3>{{ projeto }}</h3>
+</div>
+</div>
+</div>
 
-    <h1>{{ projeto }}</h1>
 
     {% if atualizar == "intermedio" %}
     <form action="/intermediador" method="post">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-12">
         <input type="hidden" name="projeto" value="{{ projeto }}">
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
         <input type="hidden" name="responsavel_status" value="{{ responsavel_status }}">
@@ -43,11 +52,11 @@
             onsubmit="return verificarCheckboxSelecionado();">Selecionar</button>
 
         {% for status in status_list %}
-
+        
         <details>
             <summary>{{ status }}</summary>
             <!-- Tabela com todos os projetos que o usuario esta responsavel-->
-            <table class="table table-striped table-documentos">
+            <table class="table table-striped table-documentos  col-md-12">
                 <thead>
                     <tr>
                         <th>Selecionar</th>
@@ -73,7 +82,11 @@
                 </tbody>
             </table>
         </details>
+
         {% endfor %}
+    </div>
+</div>
+</div>
     </form>
     {% endif %}
 
@@ -98,7 +111,7 @@
                 <option value="Richard">Richard</option>
             </select>
         </div>
-        <table class="table table-striped table-documentos">
+        <table class="table table-striped table-documentos col-md-12">
             <thead>
                 <tr>
                     <th>Nome do arquivo</th>
@@ -133,7 +146,7 @@
                 <option value="Richard">Richard</option>
             </select>
         </div>
-        <table class="table table-striped table-documentos">
+        <table class="table table-striped table-documentos col-md-12">
             <thead>
                 <tr>
                     <th>Nome do arquivo</th>
@@ -152,7 +165,7 @@
 
         {% endif %}
 
-        {% if responsavel_status == "Para Entrega" %}
+        {% if responsavel_status == "Para Entrega" or responsavel_status == "Entregue" %}
         
         <div class="d-inline-block">
             <button type="submit" class="mudar_status" name="status_atualizar" value="gerar_grd">Gerar GRD</button>
@@ -161,7 +174,7 @@
         <input type="hidden" name="data_atualizada" value="{{ data_atualizada }}">
 
 
-        <table class="table table-striped table-documentos">
+        <table class="table table-striped table-documentos col-md-12">
             <thead>
                 <tr>
                     <th>Nome do arquivo</th>
@@ -182,7 +195,7 @@
             <button type="submit" class="mudar_status" name="status_atualizar" value="atualizar">Mudar Status</button>
             <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
         </div>
-        <table class="table table-striped table-documentos">
+        <table class="table table-striped table-documentos col-md-12">
             <thead>
                 <tr>
                     <th>Nome do arquivo</th>
@@ -197,6 +210,7 @@
             </tbody>
         </table>
         {% endif %}
+        
 
     </form>
     {% endif %}
@@ -214,6 +228,7 @@
             <input type="text" class="form-control" id="nome_pasta" name="nome_pasta" required>
         </div>
         <button type="submit" class="btn btn-primary">Renomear Pasta</button>
+        <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
     </form>
     {% endif %}
 
@@ -298,10 +313,6 @@
             $("#btn_reprovado").remove();
             $("#btn_reprovado2").remove();
         }
-
-
-        
-
     </script>
 
     {% endblock %}
