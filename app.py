@@ -364,8 +364,9 @@ def atualizar_responsavel():
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
         df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
         status_atual = df_selecionado["status"].values.tolist()
-        caminho_projeto = df_selecionado["caminho"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
@@ -380,12 +381,12 @@ def atualizar_responsavel():
             )
         elif atualizar_responsavel == "revisao":
             caminho_projeto = re.search(
-                r"(?<=).*?(?=\\Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+                r"(?<=).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
             )
             caminho_projeto = caminho_projeto.group(0)
 
             projeto_arquivo = re.search(
-                r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)", caminho_projeto_df[0]
+                r"(?<=\/Projetos\/).*?(?=\/Arquivos\ do\ Projeto)", caminho_projeto_df[0]
             )
             projeto_arquivo = projeto_arquivo.group(0)
 
