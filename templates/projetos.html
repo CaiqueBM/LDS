@@ -36,7 +36,7 @@
 
     {% block content %}
 
-    
+
     <!-- Modal -->
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
@@ -47,7 +47,7 @@
                         aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
-                <form action="{{ url_for('criar_projeto') }}" method="post">
+                <form action="{{ url_for('criar_projeto') }}" method="post"> 
                     <div class="form-group">
                         <label for="nome_projeto">Nome do projeto:</label>
                         <input type="text" class="form-control" id="nome_projeto" name="nome_projeto"
