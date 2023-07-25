@@ -35,36 +35,8 @@
     {% extends 'base.html' %}
 
     {% block content %}
-    
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-18">
-    <h3>{% block title %} Sistema LDS - Todos Projetos {% endblock %}</h3>
-</div>
-</div>
-</div>
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-    <!-- Botão que abre o modal -->
-    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
-        Criar projeto
-    </button>
-
-
-
-    {{ tabela | safe }}
-</div>
-</div>
-</div>
-
-    {% endblock %}
-
-
-
-
-<!-- Modal -->
+    <!-- Modal -->
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -92,6 +64,41 @@
         </div>
     </div>
 </div>
+    
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-18">
+    <h3>{% block title %} Sistema LDS - Todos Projetos {% endblock %}</h3>
+</div>
+</div>
+</div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+    <!-- Botão que abre o modal -->
+    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#myModal">
+        Criar projeto
+    </button>
+</div>
+</div>
+</div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+    {{ tabela | safe }}
+    {% endblock %}
+</div>
+</div>
+</div>
+
+    
+
+
+
+
+
 
 </body>
 
