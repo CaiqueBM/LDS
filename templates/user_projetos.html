@@ -240,14 +240,17 @@
         <input type="hidden" name="novo_caminho" value="{{ novo_caminho }}">
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
         
-            <div>
-                <label for="nome_pasta">Enviado por:</label>
-                <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly="readonly">
-                <label for="nome_pasta">Data envio:</label>
-                <input id="data" name="data" value="{{ data_atualizada }}" readonly="readonly">
+        
+            <div class="input-wrapper">
+            <label for="nome_pasta">Enviado por:</label>
+            <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly="readonly"  placeholder="Input 1">
+            </div>
+            <div class="input-wrapper">
+            <label for="nome_pasta">Data envio:</label>
+            <input id="data" name="data" value="{{ data_atualizada }}" readonly="readonly" placeholder="Input 2">
             </div>
 
-        <section>
+            <div class="container">
             <div class="form-group-rev">
                 <label for="nome_pasta">Revisao:</label>
                 <input type="text" class="form-control" id="revisao" name="revisao" required>
@@ -271,7 +274,7 @@
                     <option value="H">H - CANCELADO</option>
                 </select>
             </div>
-        </section>
+        
 
         <section>
             <div class="form-group">

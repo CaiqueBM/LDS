@@ -14,6 +14,8 @@ import pandas as pd
 import datetime
 import sqlite3
 import csv
+from openpyxl import Workbook, load_workbook
+
 
 # from babkuppy import para_avaliacao
 from cria_tabelas import gerar
@@ -45,13 +47,21 @@ aprovado_exibido = False
 mudar_status = ""
 abreviacao = ""
 data_atualizada = ""
-diretorio_raiz = r"""/media/hdfs/Engenharia/Projetos"""
-diretorio_default = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/Modelos de Arquivos"""
-caminho_padrao = r"""/media/hdfs/Engenharia/Projetos/Sistema LDS/GRD E LD padrao"""
-pasta_padrao_projeto = r"""/media/hdfs/Engenharia/Projetos/0000 - Novo Projeto"""
+"""diretorio_raiz = os.path.join("/", "media", "hdfs", "Engenharia", "Projetos")
+diretorio_default = os.path.join(
+    "/", "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "Modelos de Arquivos"
+)
+caminho_padrao = os.path.join(
+    "/", "media", "hdfs", "Engenharia", "Projetos", "Sistema LDS", "GRD E LD padrao"
+)
+pasta_padrao_projeto = os.path.join(
+    "/", "media", "hdfs", "Engenharia", "Projetos", "0000 - Novo Projeto"
+)"""
 
-
-
+diretorio_raiz = r"""C:\Users\lanch\Desktop\Projetos"""
+diretorio_default = r"""C:\Users\lanch\Desktop\Default"""
+caminho_padrao = r"""C:\Users\lanch\Desktop\modeloGRD"""
+pasta_padrao_projeto = r"""C:\Users\lanch\Desktop\1 - Padrao"""
 
 @app.route("/")
 def index():
@@ -80,6 +90,7 @@ def login():
                     (username, login_time),
                 )
                 conn.commit()
+                c.close()
                 conn.close()
                 session["username"] = username
                 session["login_time"] = login_time
@@ -116,13 +127,14 @@ def user():
             f"SELECT DISTINCT projeto FROM arquivos WHERE (responsavel = '{username}' OR aprovador = '{username}')",
             conn,
         )
+        # Feche a conexão com o banco de dados
+        conn.close()
 
         df_tabela["projeto"] = df_tabela["projeto"].apply(
             lambda x: f"<a href='/user/{x}'>{x}</a>"
         )
 
-        # Feche a conexão com o banco de dados
-        conn.close()
+        
         tabela_projetos = df_tabela.to_html(
             classes="table table-striped table-user", escape=False, index=False
         )
@@ -229,19 +241,22 @@ def projetos():
         login_time = session["login_time"]
         global df_tabela
         global diretorio_raiz
-        df_link = pd.DataFrame(columns=["projeto"])
+        df_link = pd.DataFrame(columns=["projeto", "numero"])
 
         for pasta in os.listdir(diretorio_raiz):
             if os.path.isdir(os.path.join(diretorio_raiz, pasta)):
+                if re.search(r"^(00+|[^0-9].*|[^0-9].*-)", pasta):
+                    continue
                 caminho_projeto = os.path.join(diretorio_raiz, pasta)
-                projeto_arquivo = re.search(
-                    r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto
-                )
-                if projeto_arquivo:
-                    projeto = projeto_arquivo.group(1)
-                else:
-                    projeto = ""
-                df_link.loc[len(df_link)] = [projeto]
+
+                numero_personalizado = re.search(r"Projetos\\(\d+)\s*-", caminho_projeto)
+                if numero_personalizado:
+                    numero_projeto = numero_personalizado.group(1)
+
+                projeto = pasta
+                df_link.loc[len(df_link)] = [projeto, int(numero_projeto)]
+        df_link = df_link.sort_values(by='numero', ascending=False)
+        df_link = df_link.drop('numero', axis=1)
 
         # Adiciona um link no nome dos projetos na coluna "projeto" da tabela
         df_link["projeto"] = (
@@ -291,6 +306,7 @@ def documentos(projeto):
             f'''SELECT * FROM arquivos WHERE projeto="{(projeto)}"''',
             conn,
         )
+        conn.close()
         documentos = [tuple(row) for row in df_tabela.values]
 
         status_list = df_tabela["status"].unique()
@@ -308,7 +324,7 @@ def documentos(projeto):
                 fields = line.strip().split(";")
                 sub.append(fields[1])
 
-        conn.close()
+        
         # df_tabela.drop(df_tabela.index, inplace=True)
 
         response = make_response(
@@ -348,8 +364,9 @@ def atualizar_responsavel():
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
         df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
         status_atual = df_selecionado["status"].values.tolist()
-        caminho_projeto = df_selecionado["caminho"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
         id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
@@ -358,6 +375,104 @@ def atualizar_responsavel():
                 url_for(
                     "documentos",
                     projeto=projeto,
+                    atualizar=atualizar,
+                    df_selecionado=df_selecionado,
+                )
+            )
+        elif atualizar_responsavel == "revisao":
+            caminho_projeto = re.search(
+                r"(?<=).*?(?=\\Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+            )
+            caminho_projeto = caminho_projeto.group(0)
+
+            projeto_arquivo = re.search(
+                r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)", caminho_projeto_df[0]
+            )
+            projeto_arquivo = projeto_arquivo.group(0)
+
+            # buscar abreviacao
+            conn = sqlite3.connect("database.db")
+            query = "SELECT * FROM dados_arquivo"
+            df_projeto = pd.read_sql_query(query, conn)
+            conn.close()
+
+            for i in range(tamanho_lista):
+                nome_do_arquivo = os.path.basename(caminho_projeto_df[i])
+
+                partes = nome_do_arquivo.split('.')
+                nome_arq = partes[0]
+
+                # Obtendo a última parte da lista (que é a extensão do arquivo)
+                extensao = partes[-1]
+
+                posicao_r = nome_arq.find('R')
+                if posicao_r != -1:  # Se 'R' for encontrado na string
+                    numero_atual = int(nome_arq[posicao_r + 1:])  # Extrai o número subsequente após 'R'
+                    novo_numero = numero_atual + 1
+                    novo_nome = nome_arq[:posicao_r + 1] + str(novo_numero) + "." + extensao  # Compondo a nova string
+
+                    pasta_destino = os.path.join(
+                        diretorio_raiz,
+                        projeto_arquivo,
+                        "Arquivos do Projeto",
+                        "Area de Trabalho",
+                        username,
+                    )
+
+                shutil.copy(caminho_projeto_df[i], pasta_destino)
+
+                # Monta o caminho do arquivo no destino com o novo nome
+                novo_caminho = os.path.join(pasta_destino, novo_nome)
+
+                # Renomeia o arquivo copiado no destino com o novo nome
+                os.rename(os.path.join(pasta_destino, nome_do_arquivo), novo_caminho)
+
+                result_projeto = df_projeto[df_projeto["nome"] == nome_do_arquivo]
+
+                titulo_arquivo = result_projeto["titulo"].iloc[0]
+
+                conn = sqlite3.connect("database.db")
+                conn.execute('BEGIN EXCLUSIVE')
+                c = conn.cursor()
+                c.execute(
+                    "INSERT INTO arquivos (nome, status, responsavel, data_criado, caminho, projeto) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        novo_nome,
+                        "Em Desenvolvimento",
+                        username,
+                        data_hora,
+                        novo_caminho,
+                        projeto_arquivo,
+                    ),
+                )
+
+                c.execute(
+                    "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
+                    (novo_nome, projeto_arquivo, titulo_arquivo),
+                )
+
+                c.execute(
+                    "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        novo_nome,
+                        projeto_arquivo,
+                        "Criado",
+                        data_hora,
+                        username,
+                    ),
+                )
+                conn.commit()
+                c.close()
+                conn.close()
+
+            linha_selecionada = []
+            df_tabela = df_tabela.dropna()
+
+            return redirect(
+                url_for(
+                    "documentos",
+                    projeto=projeto,
+                    responsavel_status=responsavel_status,
                     atualizar=atualizar,
                     df_selecionado=df_selecionado,
                 )
@@ -405,10 +520,9 @@ def atualizar_responsavel():
                         ),
                     )
                     conn.commit()
-
+                c.close()
                 conn.close()
-            else:
-                print("0")
+
             return redirect(
                 url_for(
                     "documentos",
@@ -501,7 +615,7 @@ def atualizar_status():
         status_aprovador = request.form.get("status_aprovador", None)
         status_atualizar = request.form.get("status_atualizar", None)
         now = datetime.datetime.now()
-        data_atualizada = now.strftime("%d/%m/%Y")
+        data_atualizada = now.strftime("%d/%m/%Y %H:%M:%S")
         data_hora = now.strftime("%d/%m/%Y %H:%M:%S")
         tamanho = len(linha_selecionada)
 
@@ -540,7 +654,9 @@ def atualizar_status():
 
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
-                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        # r"\d....([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)",
+                        caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
 
@@ -562,14 +678,14 @@ def atualizar_status():
                         "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
                         (
                             nome_do_arquivo,
-                            projeto,
+                            projeto_arquivo,
                             status_atual[0],
                             data_hora,
                             username,
                         ),
                     )
                     conn.commit()
-
+                c.close()
                 conn.close()
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
@@ -579,7 +695,8 @@ def atualizar_status():
                 linha_selecionada = []
                 if caminho_projeto is not None:
                     projeto_arquivo = re.search(
-                        r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                        r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)",
+                        caminho_projeto[0],
                     )
                     projeto_arquivo = projeto_arquivo.group(0)
 
@@ -608,7 +725,7 @@ def atualizar_status():
                         "INSERT INTO log_tarefas (nome, projeto, status, data_status, responsavel) VALUES (?, ?, ?, ?, ?)",
                         (
                             nome_do_arquivo,
-                            projeto,
+                            projeto_arquivo,
                             status_atual[0],
                             data_atualizada,
                             username,
@@ -616,10 +733,10 @@ def atualizar_status():
                     )
                     conn.commit()
 
-                    conn.commit()
-                    shutil.move(caminho_projeto[i], pasta_destino)
-
+                c.close()
                 conn.close()
+                shutil.move(caminho_projeto[i], pasta_destino)
+
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
             elif status_atual[0] == "Para Avaliacao":
@@ -629,9 +746,10 @@ def atualizar_status():
 
                     if caminho_projeto is not None:
                         projeto_arquivo = re.search(
-                            r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
+                            r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)",
+                            caminho_projeto[0],
                         )
-                        projeto_arquivo = projeto_arquivo.group(0)
+                    projeto_arquivo = projeto_arquivo.group(0)
 
                     pasta_destino = os.path.join(
                         diretorio_raiz,
@@ -655,6 +773,8 @@ def atualizar_status():
                         query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = 'Em Desenvolvimento', responsavel = '{responsavel}', aprovador = '' WHERE id = '{id_documentos[i]}' """
                         c.execute(query)
                         conn.commit()
+                        c.close()
+                        conn.close()
 
                         shutil.move(caminho_projeto[i], pasta_destino)
 
@@ -663,11 +783,11 @@ def atualizar_status():
                 elif status_aprovador == "aprovado":
                     control = ""
 
-                    if caminho_projeto is not None:
-                        projeto_arquivo = re.search(
-                            r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto[0]
-                        )
-                        projeto_arquivo = projeto_arquivo.group(0)
+                    projeto_arquivo = re.search(
+                        r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)",
+                        caminho_projeto[0],
+                    )
+                    projeto_arquivo = projeto_arquivo.group(0)
 
                     pasta_destino = os.path.join(
                         diretorio_raiz,
@@ -676,6 +796,11 @@ def atualizar_status():
                         "Para Entrega",
                         "Aprovados",
                     )
+
+                    # Verifica se o diretório 'Aprovados' já existe
+                    if not os.path.exists(pasta_destino):
+                        # Cria o diretório 'Aprovados'
+                        os.makedirs(pasta_destino)
 
                     # Itera sobre os resultados e move cada arquivo para a pasta de destino
                     conn = sqlite3.connect("database.db")
@@ -688,7 +813,7 @@ def atualizar_status():
                         novo_status = status[
                             (status.index(status_atual[i]) + 1) % len(status)
                         ]
-                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', responsavel = '{username}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
+                        query = f"""UPDATE arquivos SET caminho='{novo_caminho}', status = '{novo_status}', data_aprovado = '{data_atualizada}' WHERE id = '{id_documentos[i]}' """
                         c.execute(query)
 
                         c.execute(
@@ -701,15 +826,16 @@ def atualizar_status():
                                 username,
                             ),
                         )
-                        conn.commit()
 
                         conn.commit()
+                        c.close()
+                        conn.close()
 
                         shutil.move(caminho_projeto[i], pasta_destino)
 
-                    conn.close()
                     linha_selecionada = []
                     df_tabela = df_tabela.dropna()
+
         elif status_atualizar == "gerar_grd":
             control = "renomear"
 
@@ -752,20 +878,25 @@ def renomear_pasta():
         query = "SELECT * FROM arquivos"
         df_tabela = pd.read_sql_query(query, conn)
         df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
+        status_atual = df_selecionado["status"].values.tolist()
+        id_documentos = df_selecionado["id"].values.tolist()
         conn.close()
 
-        # -------------------- Buscar nome do projeto na pasta --------------------
-        folders = [
-            f
-            for f in os.listdir(diretorio_raiz)
-            if os.path.isdir(os.path.join(diretorio_raiz, f))
-        ]
-        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
-        pattern = re.compile(rf".*{re.escape(projeto)}.*", re.IGNORECASE)
-        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        projeto = [f for f in folders if re.match(pattern, f)]
+        caminho_projeto = re.search(
+            r"(?<=).*?(?=\\Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+        )
+        caminho_projeto = caminho_projeto.group(0)
 
-        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
+        projeto_arquivo = re.search(
+            r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)", caminho_projeto_df[0]
+        )
+        projeto_arquivo = projeto_arquivo.group(0)
+
+        # -------------------- Buscar nome do projeto na pasta --------------------
+
+        # caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
@@ -777,9 +908,6 @@ def renomear_pasta():
         query = "SELECT * FROM arquivos"
         df_renomear = pd.read_sql_query(query, conn)
         conn.close()
-
-        projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
-        projeto_arquivo = projeto_arquivo.group(0)
 
         caminho_atual = os.path.join(
             diretorio_raiz,
@@ -798,8 +926,6 @@ def renomear_pasta():
         )
 
         os.makedirs(novo_caminho, exist_ok=True)
-        # shutil.move(caminho_atual, novo_caminho)
-        # os.rename(caminho_atual, novo_caminho)
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
@@ -808,7 +934,7 @@ def renomear_pasta():
             nome_do_arquivo = os.path.basename(row["caminho"])
             caminho_arq = os.path.join(caminho_atual, nome_do_arquivo)
 
-            shutil.move(caminho_arq, novo_caminho)
+            shutil.copy(caminho_arq, novo_caminho)
 
             if row["caminho"] == caminho_arq:
                 caminho_arq = os.path.join(novo_caminho, nome_do_arquivo)
@@ -827,7 +953,7 @@ def renomear_pasta():
                 )
                 conn.commit()
 
-                conn.commit()
+        c.close()
         conn.close()
 
         control = "gerar_grd"
@@ -876,16 +1002,29 @@ def gerar_grd():
         aprovado = request.form["aprovado"]
         autorizado = request.form["autorizado"]
 
+        projeto = projeto_atual.strip()
+
+        conn = sqlite3.connect("database.db")
+        query = "SELECT * FROM arquivos"
+        df_tabela = pd.read_sql_query(query, conn)
+        df_selecionado = df_tabela.loc[df_tabela["id"].isin(linha_selecionada)]
+        nome_arq = df_selecionado["nome"].values.tolist()
+        caminho_projeto_df = df_selecionado["caminho"].values.tolist()
+        status_atual = df_selecionado["status"].values.tolist()
+        id_documentos = df_selecionado["id"].values.tolist()
+        conn.close()
+
+        caminho_projeto = re.search(
+            r"(?<=).*?(?=\\Arquivos\ do\ Projeto)", caminho_projeto_df[0]
+        )
+        caminho_projeto = caminho_projeto.group(0)
+
+        projeto_arquivo = re.search(
+            r"(?<=\\Projetos\\).*?(?=\\Arquivos do Projeto)", caminho_projeto_df[0]
+        )
+        projeto_arquivo = projeto_arquivo.group(0)
+
         # -------------------- Buscar nome do projeto na pasta --------------------
-        try:
-            projeto = ast.literal_eval(projeto_atual)[0]
-        except ValueError:
-            projeto = projeto_atual
-
-        partes = projeto.split("-", 1)
-        projeto_recebido = partes[1].strip()
-
-        caminho_projeto = os.path.join(diretorio_raiz, projeto)
         caminho_verificado = os.path.join(
             caminho_projeto, "Arquivos do Projeto", "Para Entrega"
         )
@@ -894,7 +1033,10 @@ def gerar_grd():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
+        conn.close()
+
         result_projeto = df_projeto[df_projeto["projeto"] == projeto]
+
         abreviacao_empresa = result_projeto["abreviacao"].iloc[0]
         descricao_projeto = result_projeto["descricao"].iloc[0]
 
@@ -910,6 +1052,7 @@ def gerar_grd():
         contador_GRD = 0
         # Percorre todos os diretórios e arquivos no caminho fornecido
         for diretorio_atual, subdiretorios, arquivos in os.walk(caminho_verificado):
+            subdiretorios.sort()
             for subdiretorio in subdiretorios:
                 pastas.append(subdiretorio)
                 # Verifica se o nome da pasta contém "GRD"
@@ -923,59 +1066,50 @@ def gerar_grd():
                     else:
                         pasta_GRD_anterior = None
                         pasta_GRD_recente = caminho_pasta
-
         # Gerar LD
-        if pasta_GRD_anterior is None:
+        if pasta_GRD_anterior == None:
             # Criaçao de uma nova GRD, primeira entrega
             # Abrir o arquivo Excel
-            app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_padrao)  # LD vazia para preencher
-            # Obter a planilha desejada
-            planilha = workbook.sheets["F. Rosto"]
+            workbook = load_workbook(caminho_ld_padrao)
+
+            # Obter a planilha desejada]
+            planilha = workbook["F. Rosto"]
 
             # Nome da Empresa-Cidade
-            planilha.range("J1").value = projeto_recebido  # projeto
-            shape_empresa = planilha.shapes["nome_empresa1"]
-            shape_empresa.text = projeto_recebido  # projeto
-            # Descriçao do projeto
-            planilha.range("A5").value = descricao_projeto  # descricao_projeto
+            planilha["J1"].value = projeto
 
+            """shape_empresa = planilha.shapes["nome_empresa1"]
+            shape_empresa.text = projeto  # projeto  ----------------"""
+            
+            # Descriçao do projeto
+            planilha["A5"].value = descricao_projeto
             # Logica para adicionar a primeira revisao
             X = 12  # linha 12 é a primeira a ser adicionada a revisao 0
-            planilha.range("A" + str(X)).value = "0"  # Revisao
+            planilha["A" + str(X)].value = "0"
             # Tipo (TE)
-            planilha.range("B" + str(X)).value = str(tipo)  # tipo TE
-            """if tipo in tipos:
-                tipo_te = tipos[tipo]
-                planilha.range("B" + str(X)).value = str(tipo)  # tipo TE"""
-
+            planilha["B" + str(X)].value = str(tipo)
             # Descriçao
-            planilha.range("C" + str(X)).value = str(descricao)  # descricao_projeto
-
+            planilha["C" + str(X)].value = str(descricao)
             # Feito por:
-            planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
-
+            planilha["J" + str(X)].value = abreviacao
             # Verificado
-            planilha.range("K" + str(X)).value = verificado  # quem verificou
+            planilha["K" + str(X)].value = verificado
             # Aprovado
-            planilha.range("L" + str(X)).value = aprovado  # quem aprovou
+            planilha["L" + str(X)].value = aprovado
             # Aut.
-            planilha.range("M" + str(X)).value = autorizado  # quem autorizou
+            planilha["M" + str(X)].value = autorizado
 
             # Data de envio
             now = datetime.datetime.now()
             data_envio = now.strftime("%d/%m/%Y")
-            planilha.range("N" + str(X)).value = data_envio  # data
+            planilha["N" + str(X)].value = data_envio
 
             nome_arq_ld = "ABS-" + abreviacao_empresa + "-LD-" + "001" + "_R0" + ".xlsx"
-            planilha.range("J6").value = nome_arq_ld  # nome da lista de documentos
+            planilha["J6"].value = nome_arq_ld
             nome_ld = os.path.join(novo_caminho, nome_arq_ld)
 
             # ------------------- Modificando a planilha LISTA -------------------
-            planilha = workbook.sheets["Lista"]
-
-            shape_empresa = planilha.shapes["nome_empresa2"]
-            shape_empresa.text = projeto_recebido  # projeto
+            planilha = workbook["Lista"]
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -985,19 +1119,15 @@ def gerar_grd():
             conn.close()
 
             X = 11
-            planilha.range(
-                "B" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
-            planilha.range(
-                "C" + str(X)
-            ).value = "LISTA DE DOCUMENTOS"  # primeiro elemento
-            planilha.range("D" + str(X)).value = "0"  # Revisao
-            planilha.range("F" + str(X)).value = "0"  # Revisao
-            planilha.range("I" + str(X)).value = "LD"  # tipo TE
-            planilha.range("J" + str(X)).value = "2"  # paginas
-            planilha.range("H" + str(X)).value = "A4"  # formato
-            planilha.range("K" + str(X)).value = "100"
-            planilha.range("L" + str(X)).value = "=1/8*J11"
+            planilha["B" + str(X)].value = nome_arq_ld
+            planilha["C" + str(X)].value = "LISTA DE DOCUMENTOS"
+            planilha["D" + str(X)].value = "0"
+            planilha["F" + str(X)].value = "0"
+            planilha["I" + str(X)].value = "LD"
+            planilha["J" + str(X)].value = "2"
+            planilha["H" + str(X)].value = "A4"
+            planilha["K" + str(X)].value = "100"
+            planilha["L" + str(X)].value = "=1/8*J11"
 
             padrao = r"R\d+"
 
@@ -1006,16 +1136,18 @@ def gerar_grd():
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
             df_arquivo = pd.read_sql_query(query, conn)
+            conn.close()
 
             for nome in nome_arq:
                 result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
                 titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("B" + str(X)).value = nome
-                planilha.range("C" + str(X)).value = str(titulo)
+                planilha["B" + str(X)].value = nome
+                planilha["C" + str(X)].value = str(titulo)
+
                 resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
-                    planilha.range("D" + str(X)).value = revisao
+                    planilha["D" + str(X)].value = revisao
                 expressoes = [
                     "LC",
                     "LD",
@@ -1037,12 +1169,11 @@ def gerar_grd():
                 match = re.search(padrao, nome)
                 if match:
                     tipo_expressao = match.group(0)
-                    # novo_nome = nome_arq.replace(expressao_encontrada, "")
-                planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("F" + str(X)).value = "0"
-                planilha.range("J" + str(X)).value = "1"  # paginas
-                planilha.range("K" + str(X)).value = "100"
-                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
+                planilha["I" + str(X)].value = tipo_expressao
+                planilha["F" + str(X)].value = "0"
+                planilha["J" + str(X)].value = "1"
+                planilha["K" + str(X)].value = "100"
+                planilha["L" + str(X)].value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
@@ -1057,19 +1188,18 @@ def gerar_grd():
                 ]
 
                 if tipo_expressao in A1:
-                    planilha.range("H" + str(X)).value = "A1"
+                    planilha["H" + str(X)].value = "A1"
                 if tipo_expressao in A2:
-                    planilha.range("H" + str(X)).value = "A2"
+                    planilha["H" + str(X)].value = "A2"
                 if tipo_expressao in A3:
-                    planilha.range("H" + str(X)).value = "A3"
+                    planilha["H" + str(X)].value = "A3"
                 if tipo_expressao in A4:
-                    planilha.range("H" + str(X)).value = "A4"
+                    planilha["H" + str(X)].value = "A4"
                 X = X + 1
 
             workbook.save(nome_ld)
             # Fechar o arquivo Excel
             workbook.close()
-            app.quit()
 
             seq_grd = "01"
             nome_grd_parte = "GRD-ABS-" + abreviacao_empresa + "-0" + seq_grd + ".xlsx"
@@ -1093,8 +1223,8 @@ def gerar_grd():
                             )
 
                         caminho_ld_anterior = os.path.join(
-                            diretorio_atual, arquivo_ld_anterior
-                        )
+                            diretorio_atual, arquivo_ld_anterior)
+
                     if re.search(r"GRD", arquivo):
                         arquivo_grd_anterior = arquivo
                         partes = arquivo_grd_anterior.split("-")
@@ -1110,51 +1240,38 @@ def gerar_grd():
                         )
 
             # Abrir o arquivo Excel
-            app = xw.App(visible=False)
-            workbook = app.books.open(caminho_ld_anterior)
-
+            workbook = load_workbook(caminho_ld_anterior)
             # Obter a planilha desejada
-            planilha = workbook.sheets["F. Rosto"]
+            planilha = workbook["F. Rosto"]
 
-            planilha.range("J6").value = nome_arq_ld
+            planilha["J6"].value = nome_arq_ld
 
             # Logica para ler qual a ultima revisao
-            for row in planilha.range("A12:A31").options(ndim=2).value:
-                for cell in row:
-                    if cell is not None:
-                        ultima_revisao = int(cell)
-                        X = (
-                            planilha.range("A" + str(planilha.cells.last_cell.row))
-                            .end("up")
-                            .row
-                            + 1
-                        )  # Proxima linha em branco, adicionar os parametros
+            proxima_linha = None
+            for linha in range(12, 61):
+                if planilha.cell(row=linha, column=1).value is None:
+                    X = linha
+                    ultima_revisao = X - 13
+                    break
 
             # Buscar o nome de todos os arquivos a serem enviados na pagina
-            planilha.range("A" + str(X)).value = str(ultima_revisao + 1)  # Revisao
-            # Tipo (TE)
-            planilha.range("B" + str(X)).value = str(tipo)  # tipo TE
-            # Descriçao
-            planilha.range("C" + str(X)).value = str(descricao)  # descricao_projeto
-            # Feito por:
-            planilha.range("J" + str(X)).value = abreviacao  # abreviacao do responsavel
-            # Verificado
-            planilha.range("K" + str(X)).value = verificado  # quem verificou
-            # Aprovado
-            planilha.range("L" + str(X)).value = aprovado  # quem aprovou
-            # Aut.
-            planilha.range("M" + str(X)).value = autorizado  # quem autorizou
+            planilha["A" + str(X)].value = str(ultima_revisao + 1) 
+            planilha["B" + str(X)].value = str(tipo)
+            planilha["C" + str(X)].value = str(descricao)
+            planilha["J" + str(X)].value = abreviacao
+            planilha["K" + str(X)].value = verificado
+            planilha["L" + str(X)].value = aprovado
+            planilha["M" + str(X)].value = autorizado
 
             # Data de envio
             now = datetime.datetime.now()
             data_envio = now.strftime("%d/%m/%Y")
-            planilha.range("N" + str(X)).value = data_envio  # data
+            planilha["N" + str(X)].value = data_envio
 
             nome_ld = os.path.join(caminho_pasta, nome_arq_ld)
 
             # ------------------- Modificando a planilha LISTA -------------------
-
-            planilha = workbook.sheets["Lista"]
+            planilha = workbook["Lista"]
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM arquivos"
@@ -1166,38 +1283,34 @@ def gerar_grd():
             padrao = r"R\d+"
 
             X = 11
-
-            planilha.range(
-                "B" + str(X)
-            ).value = nome_arq_ld  # nome da lista de documentos
-
-            planilha.range("F" + str(X)).value = str(nova_revisao_ld)  # Revisao
+            
+            planilha["B" + str(X)].value = nome_arq_ld
+            planilha["F" + str(X)].value = str(nova_revisao_ld)
 
             conn = sqlite3.connect("database.db")
             query = "SELECT * FROM dados_arquivo"
             df_arquivo = pd.read_sql_query(query, conn)
+            conn.close()
+
+
+            proxima_linha = None
+            for linha in range(12, 61):
+                if planilha.cell(row=linha, column=2).value is None:
+                    X = linha
+                    break
 
             # Logica para ler qual a ultima revisao
-            for row in planilha.range("B12:B31").options(ndim=2).value:
-                for cell in row:
-                    if cell is not None:
-                        X = (
-                            planilha.range("A" + str(planilha.cells.last_cell.row))
-                            .end("up")
-                            .row
-                            + 12
-                        )  # Proxima linha em branco, adicionar os parametros
-
             for nome in nome_arq:
                 result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
                 titulo = result_arquivo["titulo"].iloc[0]
-                planilha.range("B" + str(X)).value = nome
-                planilha.range("C" + str(X)).value = str(titulo)
-                planilha.range("D" + str(X)).value = "0"
+                planilha["B" + str(X)].value = nome
+                planilha["C" + str(X)].value = str(titulo)
+                planilha["D" + str(X)].value = "0"
+
                 resultado = re.search(r"_R(\d+)", nome)
                 if resultado:
                     revisao = resultado.group(1)
-                    planilha.range("F" + str(X)).value = revisao
+                    planilha["F" + str(X)].value = revisao
                 expressoes = [
                     "LC",
                     "LE",
@@ -1218,10 +1331,10 @@ def gerar_grd():
                 match = re.search(padrao, nome)
                 if match:
                     tipo_expressao = match.group(0)
-                planilha.range("I" + str(X)).value = tipo_expressao
-                planilha.range("J" + str(X)).value = "1"
-                planilha.range("K" + str(X)).value = "100"
-                planilha.range("L" + str(X)).value = "=1/8*J" + str(X)
+                planilha["I" + str(X)].value = tipo_expressao
+                planilha["J" + str(X)].value = "1"
+                planilha["K" + str(X)].value = "100"
+                planilha["L" + str(X)].value = "=1/8*J" + str(X)
 
                 A1 = ["SPDA", "SE", "UNF", "TRIF", "PLT", "SPDA", "REDE", "ILU"]
                 A2 = []
@@ -1229,19 +1342,18 @@ def gerar_grd():
                 A4 = ["LC", "LE", "LI", "LM", "ET"]
 
                 if tipo_expressao in A1:
-                    planilha.range("H" + str(X)).value = "A1"
+                    planilha["H" + str(X)].value = "A1"
                 if tipo_expressao in A2:
-                    planilha.range("H" + str(X)).value = "A2"
+                    planilha["H" + str(X)].value = "A2"
                 if tipo_expressao in A3:
-                    planilha.range("H" + str(X)).value = "A3"
+                    planilha["H" + str(X)].value = "A3"
                 if tipo_expressao in A4:
-                    planilha.range("H" + str(X)).value = "A4"
+                    planilha["H" + str(X)].value = "A4"
                 X = X + 1
 
             workbook.save(nome_ld)
             # Fechar o arquivo Excel
             workbook.close()
-            app.quit()
 
             if pasta_GRD_anterior is not None:
                 for diretorio_atual, subdiretorios, arquivos in os.walk(
@@ -1274,71 +1386,66 @@ def gerar_grd():
                                 nome_grd = os.path.join(novo_caminho, nome_grd_parte)
 
         # ------------------------- GRD ------------------------------------
-        app = xw.App(visible=False)
-        workbook = app.books.open(caminho_grd_padrao)  # LD vazia para preencher
-        # Obter a planilha desejada
-        planilha = workbook.sheets["GRD"]
+        workbook = load_workbook(caminho_grd_padrao)
+        planilha = workbook["GRD"]
 
-        shape_empresa = planilha.shapes["nome_empresa3"]
-        shape_empresa.text = str(projeto_recebido)  # projeto
-
-        planilha.range("N7").value = data_envio  # data de envio
-
+        planilha["N7"].value = data_envio
         parte_num_grd = nome_grd.split("\\")
         numero_grd = (parte_num_grd[9].split("-")[3]).split(".")[0]
-
-        planilha.range("N10").value = numero_grd  # data de envio
+        planilha["N10"].value = numero_grd
 
         parte_split_ld = nome_arq_ld.split("_R", 1)
         nova_revisao = parte_split_ld[1].split(".")[0]
 
         X = 36
-        planilha.range("A" + str(X)).value = "01"  # primeiro elemento
-        planilha.range("H" + str(X)).value = nome_arq_ld  # nome da lista de documentos
-        planilha.range("K" + str(X)).value = "Lista de documentos"  # Revisao
-        planilha.range("O" + str(X)).value = nova_revisao  # Revisao
-        planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-        planilha.range("Q" + str(X)).value = "A4"  # tipo TE
-        planilha.range("S" + str(X)).value = "1"  # Quantidade
-        planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"  # Revisao
-        planilha.range("V" + str(X)).value = "Original"  # Revisao
+
+        planilha["A" + str(X)].value = "01"
+        planilha["H" + str(X)].value = nome_arq_ld
+        planilha["K" + str(X)].value = "Lista de documentos"
+        planilha["O" + str(X)].value = nova_revisao
+        planilha["P" + str(X)].value = str(tipo)
+        planilha["Q" + str(X)].value = "A4"
+        planilha["S" + str(X)].value = "1"
+        planilha["T" + str(X)].value = "DOC.ELETRÔNICO"
+        planilha["V" + str(X)].value = "Original"
+
         padrao = r"R\d+"
         X = 37
 
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_arquivo"
         df_arquivo = pd.read_sql_query(query, conn)
+        conn.close()
 
         for nome in nome_arq:
-            planilha.range("A" + str(X)).value = str(X - 36)  #  proximos elementos
+            planilha["A" + str(X)].value = str(X - 36)
             result_arquivo = df_arquivo[df_arquivo["nome"] == nome]
             titulo = result_arquivo["titulo"].iloc[0]
-            planilha.range("H" + str(X)).value = nome
-            planilha.range("K" + str(X)).value = str(titulo)
+            planilha["H" + str(X)].value = nome
+            planilha["K" + str(X)].value = str(titulo)
+
             resultado = re.search(r"_R(\d+)", nome)
             if resultado:
                 revisao = resultado.group(1)
-                planilha.range("O" + str(X)).value = revisao
-            planilha.range("P" + str(X)).value = str(tipo)  # tipo TE
-            planilha.range("S" + str(X)).value = "1"
-
-            planilha.range("T" + str(X)).value = "DOC.ELETRÔNICO"
-            planilha.range("V" + str(X)).value = "Original"
+                planilha["O" + str(X)].value = revisao
+            planilha["P" + str(X)].value = str(tipo)
+            planilha["S" + str(X)].value = "1"
+            planilha["T" + str(X)].value = "DOC.ELETRÔNICO"
+            planilha["V" + str(X)].value = "Original"
 
             if tipo_expressao in A1:
-                planilha.range("Q" + str(X)).value = "A1"
+                planilha["Q" + str(X)].value = "A1"
             if tipo_expressao in A2:
-                planilha.range("Q" + str(X)).value = "A2"
+                planilha["Q" + str(X)].value = "A2"
             if tipo_expressao in A3:
-                planilha.range("Q" + str(X)).value = "A3"
+                planilha["Q" + str(X)].value = "A3"
             if tipo_expressao in A4:
-                planilha.range("Q" + str(X)).value = "A4"
+                planilha["Q" + str(X)].value = "A4"
             X = X + 1
 
         workbook.save(nome_grd)
         # Fechar o arquivo Excel
         workbook.close()
-        app.quit()
 
         pasta_GRD_recente = None
         pasta_GRD_anterior = None
@@ -1348,7 +1455,7 @@ def gerar_grd():
         return redirect(
             url_for(
                 "user_projetos",
-                projeto=projeto_recebido,
+                projeto=projeto,
             )
         )
 
@@ -1379,34 +1486,21 @@ def criar_arquivo():
             difflib.get_close_matches(projeto_recebido, os.listdir(diretorio_raiz))[0],
         )
 
-        # -------------------- Buscar nome do projeto na pasta --------------------
-        folders = [
-            f
-            for f in os.listdir(diretorio_raiz)
-            if os.path.isdir(os.path.join(diretorio_raiz, f))
-        ]
-
-        # Criar uma expressão regular para verificar se o nome da pasta contém a parte fornecida
-        pattern = re.compile(rf".*{re.escape(projeto_recebido)}.*", re.IGNORECASE)
-
-        # Percorrer os nomes das pastas e verificar se eles correspondem à expressão regular
-        projeto = [f for f in folders if re.match(pattern, f)]
-
         # ---------------------Buscar abreviacao da empresa-------------------
 
         # Buscar o titulo
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM dados_projeto"
         df_projeto = pd.read_sql_query(query, conn)
-        result = df_projeto[df_projeto["projeto"] == projeto[0]]
-        abreviacao_empresa = result["abreviacao"].iloc[0]
-        descricao_empresa = result["descricao"].iloc[0]
+        conn.close()
 
+        result = df_projeto.loc[df_projeto["projeto"] == str(projeto_recebido)]
+        abreviacao_empresa = result["abreviacao"].iloc[0]
         arquivo_existente = request.form["arquivo_existente"]
         name, extension = os.path.splitext(arquivo_existente)
 
         # --------------- Sequencia dos arquivos ---------------------
-        caminho_projeto = os.path.join(diretorio_raiz, projeto[0])
+        caminho_projeto = os.path.join(diretorio_raiz, projeto_recebido)
         df_teste = pd.DataFrame(columns=["nome", "projeto"])
 
         # ------------------- Buscar os dados no CSV ---------------------
@@ -1440,13 +1534,12 @@ def criar_arquivo():
         conn = sqlite3.connect("database.db")
         query = "SELECT * FROM arquivos"
         df_teste = pd.read_sql_query(query, conn)
+        conn.close()
 
         partes = nome_arquivo.split("-", 4)
         padrao = "-".join(partes[:4])
 
         result_teste = df_teste[df_teste["nome"].str.contains(padrao, regex=False)]
-
-        # result_teste = df_teste[df_teste["projeto"] == projeto_recebido]
 
         if not result_teste.empty:
             sequenciais = []
@@ -1485,12 +1578,13 @@ def criar_arquivo():
             nome_arquivo,
         )
 
-        shutil.copyfile(caminho_origem, caminho_destino)
+        shutil.copy(caminho_origem, caminho_destino)
 
         projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_destino)
-        projeto_arquivo = projeto_arquivo.group(1) if projeto else None
+        projeto_arquivo = projeto_arquivo.group(1)
 
         conn = sqlite3.connect("database.db")
+        conn.execute('BEGIN EXCLUSIVE')
         c = conn.cursor()
         c.execute(
             "INSERT INTO arquivos (nome, status, responsavel, data_criado, caminho, projeto) VALUES (?, ?, ?, ?, ?, ?)",
@@ -1500,13 +1594,13 @@ def criar_arquivo():
                 username,
                 data_atualizada,
                 caminho_destino,
-                projeto_arquivo,
+                projeto_recebido,
             ),
         )
 
         c.execute(
             "INSERT INTO dados_arquivo (nome, projeto, titulo) VALUES (?, ?, ?)",
-            (nome_arquivo, projeto[0], titulo),
+            (nome_arquivo, projeto_recebido, titulo),
         )
 
         c.execute(
@@ -1520,7 +1614,7 @@ def criar_arquivo():
             ),
         )
         conn.commit()
-        conn.commit()
+        c.close()
         conn.close()
 
         return redirect(
@@ -1539,9 +1633,15 @@ def criar_projeto():
         global df_projeto
         global pasta_padrao_projeto
 
+        print("---------------- CRIAR PROJETO ------------------------")
+
         nome_projeto_inicial = request.form["nome_projeto"]
+        print("nome_projeto_inicial: ", nome_projeto_inicial)
+        print(nome_projeto_inicial)
         abreviacao_empresa = request.form["abreviacao_empresa"]
+        print("abreviacao_empresa: ", abreviacao_empresa)
         descricao_projeto = request.form["descricao_projeto"]
+        print("descricao_projeto: ", descricao_projeto)
 
         projetos = os.listdir(diretorio_raiz)
         maior_numero = 0
@@ -1554,16 +1654,15 @@ def criar_projeto():
         numero_projeto = maior_numero + 1
         nome_projeto = str(numero_projeto) + " - " + nome_projeto_inicial
 
+        print("nome_projeto: ", nome_projeto)
         pasta_atualizada = os.path.join(diretorio_raiz, nome_projeto)
 
         # adicionar o nome do projeto, a abreviacao e a descricao do projeto
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
-        c.execute(
-            "INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES (?, ?, ?)",
-            (nome_projeto, abreviacao_empresa, descricao_projeto),
-        )
+        query = f"""INSERT INTO dados_projeto (projeto, abreviacao, descricao) VALUES ('{nome_projeto}', '{abreviacao_empresa}', '{descricao_projeto}')"""
+        c.execute(query)
         conn.commit()
         conn.close()
 
@@ -1575,81 +1674,64 @@ def criar_projeto():
         )
 
 
-# ----------------------------- REVISAO ---------------------------------------------------
-
-
-@app.route("/revisao", methods=["GET", "POST"])
-def upload_files():
+@app.route("/configuracoes", methods=["GET", "POST"])
+def configuracoes():
     if "username" in session:
         global diretorio_raiz
+        global caminho_padrao
+        global diretorio_default
+        global pasta_padrao_projeto
 
-        projeto = request.form["projeto"]
+        if request.method == "POST":
+            config_valor = request.form.get("config_valor", None)
 
-        conn = sqlite3.connect("database.db")
-        query = "SELECT * FROM arquivos"
-        df_renomear = pd.read_sql_query(query, conn)
-        conn.close()
+            if config_valor == "config_diretorios":
+                diretorio_projetos = request.form.get("diretorio_projetos", None)
+                diretorio_grd = request.form.get("diretorio_grd", None)
+                diretorio_padrao = request.form.get("diretorio_padrao", None)
+                pasta_projeto = request.form.get("pasta_projeto", None)
 
-        caminho_projeto = df_renomear.iloc[0]["caminho"]
+                if diretorio_projetos is not None:
+                    diretorio_raiz = diretorio_projetos
+                if diretorio_grd is not None:
+                    caminho_padrao = diretorio_grd
+                if diretorio_padrao is not None:
+                    diretorio_default = diretorio_padrao
+                if pasta_projeto is not None:
+                    pasta_padrao_projeto = pasta_projeto
 
-        projeto_arquivo = re.search(r"\d...([A-Za-z\s]+[\w-]+)", caminho_projeto)
-        projeto_arquivo = projeto_arquivo.group(0)
-
-        pasta_revisao = os.path.join(
-            diretorio_raiz, projeto_arquivo, "Arquivos do Projeto", "Para Revisao"
-        )
-
-        files = request.files.getlist("files[]")
-        for file in files:
-            filename = file.filename
-            file.save(os.path.join(pasta_revisao, filename))
-
-        # Guardar novamente na tabela SQL com caminho correto
-
-        return redirect(
-            url_for(
-                "user_projetos",
-                projeto=projeto,
-            )
-        )
-
+        # Renderizar o template da página de configurações
+        return render_template("configuracoes.html")
 
 # --------------------------------------------------------------------------------
 
+@app.route("/log_atividades", methods=["GET", "POST"])
+def log_atividades():
+    if "username" in session:
+        username = session["username"]
+        login_time = session["login_time"]
 
-@app.route("/configuracoes", methods=["GET", "POST"])
-def configuracoes():
-    global diretorio_raiz
-    global caminho_padrao
-    global diretorio_default
-    global pasta_padrao_projeto
+        conn = sqlite3.connect("database.db")
+        df_atividade = pd.read_sql_query(f"SELECT * FROM log_tarefas", conn,)
+        conn.close()
 
-    if request.method == "POST":
-        config_valor = request.form.get("config_valor", None)
+        df_atividade = df_atividade.sort_values(by='id', ascending=False)
 
-        if config_valor == "config_diretorios":
-            diretorio_projetos = request.form.get("diretorio_projetos", None)
-            diretorio_grd = request.form.get("diretorio_grd", None)
-            diretorio_padrao = request.form.get("diretorio_padrao", None)
-            pasta_projeto = request.form.get("pasta_projeto", None)
+        # Renderiza a página "projetos.html" e passa os dados da tabela "arquivos" para a variável "tabela"
+        tabela_atividade = df_atividade.to_html(
+            classes="table table-striped table-atividade",
+            escape=False,
+            index=False,
+            table_id="myTable",
+        )
 
-            if diretorio_projetos is not None:
-                diretorio_raiz = diretorio_projetos
-            if diretorio_grd is not None:
-                caminho_padrao = diretorio_grd
-            if diretorio_padrao is not None:
-                diretorio_default = diretorio_padrao
-            if pasta_projeto is not None:
-                pasta_padrao_projeto = pasta_projeto
-
-        elif config_valor == "config_usuario":
-            usuario = request.form.get("usuario", None)
-            senha = request.form.get("senha", None)
-
-    # Renderizar o template da página de configurações
-    return render_template("configuracoes.html")
-
-
+        return render_template(
+            "log_atividades.html",
+            username=username,
+            login_time=login_time,
+            tabela_atividade=tabela_atividade,
+        )
+    
 # --------------------------------------------------------------------------------
 
 if __name__ == "__main__":
