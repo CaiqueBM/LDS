@@ -401,23 +401,24 @@ def atualizar_responsavel():
 
                 partes = nome_do_arquivo.split('.')
                 nome_arq = partes[0]
-
-                # Obtendo a última parte da lista (que é a extensão do arquivo)
                 extensao = partes[-1]
 
-                posicao_r = nome_arq.find('R')
-                if posicao_r != -1:  # Se 'R' for encontrado na string
-                    numero_atual = int(nome_arq[posicao_r + 1:])  # Extrai o número subsequente após 'R'
-                    novo_numero = numero_atual + 1
-                    novo_nome = nome_arq[:posicao_r + 1] + str(novo_numero) + "." + extensao  # Compondo a nova string
+                rev_antiga = re.search(r"_R([\d]+)", nome_arq)
+                rev_antiga = rev_antiga.group(1)
+                rev_nova = int(rev_antiga) + 1
 
-                    pasta_destino = os.path.join(
-                        diretorio_raiz,
-                        projeto_arquivo,
-                        "Arquivos do Projeto",
-                        "Area de Trabalho",
-                        username,
-                    )
+                partes = nome_do_arquivo.split('_R')
+                nome_split = partes[0]
+
+                novo_nome = nome_split + "_R" + str(rev_nova) + "." + extensao
+
+                pasta_destino = os.path.join(
+                    diretorio_raiz,
+                    projeto_arquivo,
+                    "Arquivos do Projeto",
+                    "Area de Trabalho",
+                    username,
+                )
 
                 shutil.copy(caminho_projeto_df[i], pasta_destino)
 
