@@ -1166,6 +1166,7 @@ def gerar_grd():
                     "REDE",
                     "ARQR",
                     "DIAG",
+                    "MC",
                 ]
                 padrao = r"\b(?:{})\b".format("|".join(expressoes))
                 match = re.search(padrao, nome)
