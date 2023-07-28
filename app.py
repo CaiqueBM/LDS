@@ -368,9 +368,10 @@ def atualizar_responsavel():
         status_atual = df_selecionado["status"].values.tolist()
         caminho_projeto_df = df_selecionado["caminho"].values.tolist()
         id_documentos = df_selecionado["id"].values.tolist()
+        responsavel = df_selecionado["responsavel"].values.tolist()
         conn.close()
 
-        if tamanho_lista <= 0:  # Retirar erro do botao
+        if tamanho_lista <= 0 or all(username in resp for resp in responsavel):  # Retirar erro do botao
             return redirect(
                 url_for(
                     "documentos",
@@ -483,9 +484,9 @@ def atualizar_responsavel():
                 conn = sqlite3.connect("database.db")
                 c = conn.cursor()
                 for i in range(tamanho_lista):
-                    nome_do_arquivo = os.path.basename(caminho_projeto[i])
+                    nome_do_arquivo = os.path.basename(caminho_projeto_df[i])
 
-                    partes_pasta = caminho_projeto[i].split(
+                    partes_pasta = caminho_projeto_df[i].split(
                         "/"
                     )  # Dividindo o caminho do projeto usando as barras duplas como separadores
                     indice_area_trabalho = partes_pasta.index(
@@ -502,7 +503,7 @@ def atualizar_responsavel():
                         + nome_do_arquivo
                     )  # Adicionando o responsável ao final do caminho
 
-                    shutil.move(caminho_projeto[i], caminho_final)
+                    shutil.move(caminho_projeto_df[i], caminho_final)
 
                     # Atualiza o status do arquivo na base de dados
 
@@ -523,8 +524,7 @@ def atualizar_responsavel():
                     conn.commit()
                 c.close()
                 conn.close()
-            else:
-                print("0")
+
             return redirect(
                 url_for(
                     "documentos",
