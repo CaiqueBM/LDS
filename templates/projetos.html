@@ -18,15 +18,8 @@
         <div class="logo">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
         </div>
-        <div class="header-content">
-            <p>Olá, {{ username }}!</p>
-            <p>Data e hora de login: {{ login_time }}</p>
-        </div>
-        <div>
-            <div class="sair">
-                <a href="{{ url_for('logout') }}" class="logout-link">Sair</a>
-            </div>
-        </div>
+
+
 
     </header>
 
@@ -47,7 +40,7 @@
                         aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
-                <form action="{{ url_for('criar_projeto') }}" method="post">
+                <form id="form_criar_projeto" action="{{ url_for('criar_projeto') }}" method="post">
                     <div class="form-group">
                         <label for="nome_projeto">Nome do projeto:</label>
                         <input type="text" class="form-control" id="nome_projeto" name="nome_projeto"

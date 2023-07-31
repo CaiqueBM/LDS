@@ -15,22 +15,13 @@
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo da Empresa">
         </div>
 
-        </div>
-        <div class="header-content">
-            <p>Usuario: {{ username }}</p>
-            <p>Login: {{ login_time }}</p>
-        </div>
-        <div>
-            <div class="sair">
-                <a href="{{ url_for('logout') }}" class="logout-link">Sair</a>
-            </div>
-        </div>
+
         
 
     </header>
     {% extends 'base.html' %}
     {% block content %}
-    <div class="container">
+    <div class="valor">
         <div class="row justify-content-center">
             <div class="col-md-18">
     <h3>{{ projeto }}</h3>
@@ -41,7 +32,7 @@
 
     {% if atualizar == "intermedio" %}
     <form action="/intermediador" method="post">
-        <div class="container">
+        <div class="valor">
             <div class="row justify-content-center">
                 <div class="col-md-12">
         <input type="hidden" name="projeto" value="{{ projeto }}">
@@ -84,7 +75,7 @@
         </details>
 
         {% endfor %}
-    </div>
+</div>
 </div>
 </div>
     </form>
@@ -227,8 +218,10 @@
             <label for="nome_pasta">Novo nome da pasta:</label>
             <input type="text" class="form-control" id="nome_pasta" name="nome_pasta" required>
         </div>
-        <button type="submit" class="btn btn-primary">Renomear Pasta</button>
-        <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
+        <div>
+            <button type="submit" class="btn btn-primary">Renomear Pasta</button>
+            <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
+        </div>
     </form>
     {% endif %}
 
@@ -240,65 +233,46 @@
         <input type="hidden" name="novo_caminho" value="{{ novo_caminho }}">
         <input type="hidden" name="atualizar" value="{{ atualizar }}">
         
-        
-            <div class="input-wrapper">
-            <label for="nome_pasta">Enviado por:</label>
-            <input id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly="readonly"  placeholder="Input 1">
-            </div>
-            <div class="input-wrapper">
-            <label for="nome_pasta">Data envio:</label>
-            <input id="data" name="data" value="{{ data_atualizada }}" readonly="readonly" placeholder="Input 2">
-            </div>
+            <div class="parent">
+                <div class="div1">
+                    <label class="label-grd" for="nome_pasta">Enviado por:</label>
+                    <input class="input-grd" id="abreviacao" name="abreviacao" value="{{ abreviacao }}" readonly="readonly">
+                    <label class="label-grd" for="nome_pasta">Data envio:</label>
+                    <input class="input-grd" id="data" name="data" value,="{{ data_atualizada }}" readonly="readonly">
+                </div>
 
-            <div class="container">
-            <div class="form-group-rev">
-                <label for="nome_pasta">Revisao:</label>
-                <input type="text" class="form-control" id="revisao" name="revisao" required>
-            </div>
-
-            <div class="form-group-rev">
-                <label for="nome_pasta">Descriçao:</label>
-                <input type="text" class="form-control" id="descricao" name="descricao" required>
-            </div>
-
-            <div class="form-group-rev">
-                <label for="nome_pasta">Tipo:</label>
-                <select form-control id="tipo" name="tipo">
-                    <option value="A">A - PRELIMINAR</option>
-                    <option value="B">B - PARA APROVAÇAO</option>
-                    <option value="C">C - PARA CONHECIMENTO</option>
-                    <option value="D">D - PARA COTAÇAO</option>
-                    <option value="E">E - PARA CONSTRUÇAO</option>
-                    <option value="F">F - CONFORME COMPRADO</option>
-                    <option value="G">G - CONFORME CONSTRUIDO</option>
-                    <option value="H">H - CANCELADO</option>
-                </select>
-            </div>
-        
-
-        <section>
-            <div class="form-group">
-                <label for="nome_pasta">Verificado por:</label>
-                <input type="text" class="form-control" id="verificado" name="verificado" required>
-            </div>
+                <div class="div2">
+                    
+                    <label class="label-grd" for="nome_pasta">Descriçao:</label>
+                    <input class="input-geral" class="form-control" id="descricao" name="descricao" required>
+                    <label class="label-grd" for="nome_pasta">Tipo:</label>
+                        <select class="input-select" form-control id="tipo" name="tipo">
+                            <option value="A">A - PRELIMINAR</option>
+                            <option value="B">B - PARA APROVAÇAO</option>
+                            <option value="C">C - PARA CONHECIMENTO</option>
+                            <option value="D">D - PARA COTAÇAO</option>
+                            <option value="E">E - PARA CONSTRUÇAO</option>
+                            <option value="F">F - CONFORME COMPRADO</option>
+                            <option value="G">G - CONFORME CONSTRUIDO</option>
+                            <option value="H">H - CANCELADO</option>
+                        </select>
+                </div>
             
-            <div class="form-group">
-                <label for="nome_pasta">Aprovado por:</label>
-                <input type="text" class="form-control" id="aprovado" name="aprovado" required>
+                <div class="div3">
+                    <label class="label-rev" for="nome_pasta">Revisao:</label>
+                    <input id="input-rev" class="form-control" id="revisao" name="revisao" required>
+                    <label class="label-rev" for="nome_pasta">Verificado por:</label>
+                    <input id="input-rev" class="form-control" id="verificado" name="verificado" required>
+                    <label class="label-rev" for="nome_pasta">Aprovado por:</label>
+                    <input id="input-rev" class="form-control" id="aprovado" name="aprovado" required>
+                    <label class="label-rev" for="nome_pasta">Autorizado por:</label>
+                    <input id="input-rev" class="form-control" id="autorizado" name="autorizado" required>
+                </div>
+                <div class="d-inline-block div4">
+                    <button type="submit" class="btn btn-primary">Gerar GRD</button>
+                    <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="nome_pasta">Autorizado por:</label>
-                <input type="text" class="form-control" id="autorizado" name="autorizado" required>
-            </div>
-        </section>
-
-
-       
-        <div class="d-inline-block">
-            <button type="submit" class="btn btn-primary">Gerar GRD</button>
-            <button type="submit" class="mudar_status" name="status_atualizar" value="cancelar">Cancelar</button>
-        </div>
 
     </form>
     {% endif %}
