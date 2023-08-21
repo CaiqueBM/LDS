@@ -734,10 +734,9 @@ def atualizar_status():
                         ),
                     )
                     conn.commit()
-
+                    shutil.move(caminho_projeto[i], pasta_destino)
                 c.close()
                 conn.close()
-                shutil.move(caminho_projeto[i], pasta_destino)
 
                 linha_selecionada = []
                 df_tabela = df_tabela.dropna()
@@ -830,10 +829,9 @@ def atualizar_status():
                         )
 
                         conn.commit()
-                        c.close()
-                        conn.close()
-
                         shutil.move(caminho_projeto[i], pasta_destino)
+                    c.close()
+                    conn.close()
 
                     linha_selecionada = []
                     df_tabela = df_tabela.dropna()
@@ -927,7 +925,7 @@ def renomear_pasta():
             nome_pasta,
         )
 
-        os.makedirs(novo_caminho, exist_ok=True)
+        os.makedirs(novo_caminho, mode=0o777, exist_ok=True)
 
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
